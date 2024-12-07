@@ -1,0 +1,11 @@
+{
+  "name": "be-my-girlfriend",
+  "version": "1.0.0",
+  "description": "A cute way to ask someone to be your girlfriend",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx http-server ."
+  },
+  "author": "",
+  "license": "ISC"
+}
