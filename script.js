@@ -138,37 +138,51 @@ class PacMan {
         const leftBtn = document.querySelector('.left-btn');
         const rightBtn = document.querySelector('.right-btn');
         
-        // Touch event handlers
-        const handleTouchStart = (key) => {
+        // Handle both touch and mouse events
+        const handleStart = (key) => {
             this.keys[key] = true;
         };
         
-        const handleTouchEnd = (key) => {
+        const handleEnd = (key) => {
             this.keys[key] = false;
         };
         
-        // Add touch events for each button
+        // Add both touch and click events for each button
         if (upBtn) {
-            upBtn.addEventListener('touchstart', () => handleTouchStart('ArrowUp'));
-            upBtn.addEventListener('touchend', () => handleTouchEnd('ArrowUp'));
+            upBtn.addEventListener('touchstart', () => handleStart('ArrowUp'));
+            upBtn.addEventListener('touchend', () => handleEnd('ArrowUp'));
+            upBtn.addEventListener('mousedown', () => handleStart('ArrowUp'));
+            upBtn.addEventListener('mouseup', () => handleEnd('ArrowUp'));
+            upBtn.addEventListener('mouseleave', () => handleEnd('ArrowUp'));
         }
         if (downBtn) {
-            downBtn.addEventListener('touchstart', () => handleTouchStart('ArrowDown'));
-            downBtn.addEventListener('touchend', () => handleTouchEnd('ArrowDown'));
+            downBtn.addEventListener('touchstart', () => handleStart('ArrowDown'));
+            downBtn.addEventListener('touchend', () => handleEnd('ArrowDown'));
+            downBtn.addEventListener('mousedown', () => handleStart('ArrowDown'));
+            downBtn.addEventListener('mouseup', () => handleEnd('ArrowDown'));
+            downBtn.addEventListener('mouseleave', () => handleEnd('ArrowDown'));
         }
         if (leftBtn) {
-            leftBtn.addEventListener('touchstart', () => handleTouchStart('ArrowLeft'));
-            leftBtn.addEventListener('touchend', () => handleTouchEnd('ArrowLeft'));
+            leftBtn.addEventListener('touchstart', () => handleStart('ArrowLeft'));
+            leftBtn.addEventListener('touchend', () => handleEnd('ArrowLeft'));
+            leftBtn.addEventListener('mousedown', () => handleStart('ArrowLeft'));
+            leftBtn.addEventListener('mouseup', () => handleEnd('ArrowLeft'));
+            leftBtn.addEventListener('mouseleave', () => handleEnd('ArrowLeft'));
         }
         if (rightBtn) {
-            rightBtn.addEventListener('touchstart', () => handleTouchStart('ArrowRight'));
-            rightBtn.addEventListener('touchend', () => handleTouchEnd('ArrowRight'));
+            rightBtn.addEventListener('touchstart', () => handleStart('ArrowRight'));
+            rightBtn.addEventListener('touchend', () => handleEnd('ArrowRight'));
+            rightBtn.addEventListener('mousedown', () => handleStart('ArrowRight'));
+            rightBtn.addEventListener('mouseup', () => handleEnd('ArrowRight'));
+            rightBtn.addEventListener('mouseleave', () => handleEnd('ArrowRight'));
         }
         
-        // Prevent default touch behavior to avoid scrolling
+        // Prevent default behavior
         document.querySelectorAll('.control-btn').forEach(btn => {
             btn.addEventListener('touchstart', (e) => e.preventDefault());
             btn.addEventListener('touchend', (e) => e.preventDefault());
+            btn.addEventListener('mousedown', (e) => e.preventDefault());
+            btn.addEventListener('mouseup', (e) => e.preventDefault());
         });
         
         // Start game loop
