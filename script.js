@@ -128,9 +128,48 @@ class PacMan {
         // Create initial hearts
         this.createHearts(15);
         
-        // Event listeners
+        // Event listeners for keyboard
         window.addEventListener('keydown', (e) => this.keys[e.key] = true);
         window.addEventListener('keyup', (e) => this.keys[e.key] = false);
+        
+        // Touch controls
+        const upBtn = document.querySelector('.up-btn');
+        const downBtn = document.querySelector('.down-btn');
+        const leftBtn = document.querySelector('.left-btn');
+        const rightBtn = document.querySelector('.right-btn');
+        
+        // Touch event handlers
+        const handleTouchStart = (key) => {
+            this.keys[key] = true;
+        };
+        
+        const handleTouchEnd = (key) => {
+            this.keys[key] = false;
+        };
+        
+        // Add touch events for each button
+        if (upBtn) {
+            upBtn.addEventListener('touchstart', () => handleTouchStart('ArrowUp'));
+            upBtn.addEventListener('touchend', () => handleTouchEnd('ArrowUp'));
+        }
+        if (downBtn) {
+            downBtn.addEventListener('touchstart', () => handleTouchStart('ArrowDown'));
+            downBtn.addEventListener('touchend', () => handleTouchEnd('ArrowDown'));
+        }
+        if (leftBtn) {
+            leftBtn.addEventListener('touchstart', () => handleTouchStart('ArrowLeft'));
+            leftBtn.addEventListener('touchend', () => handleTouchEnd('ArrowLeft'));
+        }
+        if (rightBtn) {
+            rightBtn.addEventListener('touchstart', () => handleTouchStart('ArrowRight'));
+            rightBtn.addEventListener('touchend', () => handleTouchEnd('ArrowRight'));
+        }
+        
+        // Prevent default touch behavior to avoid scrolling
+        document.querySelectorAll('.control-btn').forEach(btn => {
+            btn.addEventListener('touchstart', (e) => e.preventDefault());
+            btn.addEventListener('touchend', (e) => e.preventDefault());
+        });
         
         // Start game loop
         this.gameLoop();
