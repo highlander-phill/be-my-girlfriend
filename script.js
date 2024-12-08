@@ -233,38 +233,6 @@ class PacMan {
         }
     }
     
-    drawPacMan() {
-        const { x, y, radius, mouthOpen, direction, color } = this.pacman;
-        
-        // Draw glow effect
-        const gradient = this.ctx.createRadialGradient(x, y, radius * 0.8, x, y, radius * 1.5);
-        gradient.addColorStop(0, 'rgba(255, 255, 0, 0.3)');
-        gradient.addColorStop(1, 'rgba(255, 255, 0, 0)');
-        this.ctx.fillStyle = gradient;
-        this.ctx.beginPath();
-        this.ctx.arc(x, y, radius * 1.5, 0, Math.PI * 2);
-        this.ctx.fill();
-        
-        // Draw Pac-Man body
-        this.ctx.save();
-        this.ctx.translate(x, y);
-        this.ctx.rotate(direction);
-        this.ctx.beginPath();
-        this.ctx.arc(0, 0, radius, mouthOpen, Math.PI * 2 - mouthOpen);
-        this.ctx.lineTo(0, 0);
-        this.ctx.closePath();
-        this.ctx.fillStyle = color;
-        this.ctx.fill();
-        
-        // Draw eye
-        this.ctx.fillStyle = '#000';
-        this.ctx.beginPath();
-        this.ctx.arc(radius * 0.3, -radius * 0.5, radius * 0.15, 0, Math.PI * 2);
-        this.ctx.fill();
-        
-        this.ctx.restore();
-    }
-    
     drawHeart(heart) {
         if (heart.collected) return;
         
@@ -402,19 +370,145 @@ class PacMan {
         this.ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         
-        // Draw score with glow effect
-        this.ctx.textAlign = 'center';
-        this.ctx.font = 'bold 30px Caveat';
-        this.ctx.fillStyle = '#e74c3c';
-        this.ctx.shadowColor = '#e74c3c';
-        this.ctx.shadowBlur = 10;
-        this.ctx.fillText(`Disappointed Guys' Hearts Collected: ${this.score}`, this.canvas.width / 2, 40);
-        this.ctx.shadowBlur = 0;
-        
         // Draw game elements
         this.hearts.forEach(heart => this.drawHeart(heart));
         this.drawParticles();
-        this.drawPacMan();
+        this.drawPlayer();
+        
+        // Draw score text with background
+        this.ctx.save();
+        // Add semi-transparent background for text
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        const textMetrics = this.ctx.measureText(`Disappointed Guys' Hearts: ${this.score}`);
+        const padding = 10;
+        this.ctx.fillRect(
+            this.canvas.width / 2 - textMetrics.width / 2 - padding,
+            10,
+            textMetrics.width + padding * 2,
+            40
+        );
+        
+        // Draw score text
+        this.ctx.textAlign = 'center';
+        this.ctx.font = 'bold 28px Arial';
+        this.ctx.fillStyle = '#e74c3c';
+        this.ctx.fillText(`Disappointed Guys' Hearts: ${this.score}`, this.canvas.width / 2, 40);
+        this.ctx.restore();
+    }
+    
+    drawPlayer() {
+        const { x, y, radius, direction } = this.pacman;
+        
+        this.ctx.save();
+        this.ctx.translate(x, y);
+        this.ctx.rotate(direction);
+        
+        const scale = radius / 12;
+        
+        // Legs with boots
+        this.ctx.fillStyle = '#FFE4C4';  // Skin tone for legs
+        this.ctx.beginPath();
+        // Right leg
+        this.ctx.moveTo(5 * scale, 5 * scale);
+        this.ctx.lineTo(7 * scale, 18 * scale);
+        this.ctx.lineTo(3 * scale, 18 * scale);
+        this.ctx.lineTo(2 * scale, 5 * scale);
+        // Left leg
+        this.ctx.moveTo(-5 * scale, 5 * scale);
+        this.ctx.lineTo(-7 * scale, 18 * scale);
+        this.ctx.lineTo(-3 * scale, 18 * scale);
+        this.ctx.lineTo(-2 * scale, 5 * scale);
+        this.ctx.fill();
+
+        // Boots
+        this.ctx.fillStyle = '#000';
+        this.ctx.beginPath();
+        // Right boot
+        this.ctx.moveTo(7 * scale, 18 * scale);
+        this.ctx.lineTo(8 * scale, 22 * scale);
+        this.ctx.lineTo(2 * scale, 22 * scale);
+        this.ctx.lineTo(3 * scale, 18 * scale);
+        // Left boot
+        this.ctx.moveTo(-7 * scale, 18 * scale);
+        this.ctx.lineTo(-8 * scale, 22 * scale);
+        this.ctx.lineTo(-2 * scale, 22 * scale);
+        this.ctx.lineTo(-3 * scale, 18 * scale);
+        this.ctx.fill();
+        
+        // Short dress
+        this.ctx.fillStyle = '#FF1493';  // Deep pink
+        this.ctx.beginPath();
+        this.ctx.moveTo(0, -15 * scale);
+        // Right side with curve
+        this.ctx.quadraticCurveTo(10 * scale, -12 * scale, 12 * scale, -5 * scale);
+        this.ctx.quadraticCurveTo(10 * scale, 0, 8 * scale, 5 * scale);
+        // Bottom of dress
+        this.ctx.quadraticCurveTo(0, 7 * scale, -8 * scale, 5 * scale);
+        // Left side with curve
+        this.ctx.quadraticCurveTo(-10 * scale, 0, -12 * scale, -5 * scale);
+        this.ctx.quadraticCurveTo(-10 * scale, -12 * scale, 0, -15 * scale);
+        this.ctx.fill();
+
+        // Cleavage detail
+        this.ctx.strokeStyle = '#FF1493';
+        this.ctx.lineWidth = 1.5 * scale;
+        this.ctx.beginPath();
+        this.ctx.moveTo(-4 * scale, -12 * scale);
+        this.ctx.quadraticCurveTo(0, -8 * scale, 4 * scale, -12 * scale);
+        this.ctx.stroke();
+        
+        // Head
+        this.ctx.fillStyle = '#FFE4C4';
+        this.ctx.beginPath();
+        this.ctx.arc(0, -20 * scale, 8 * scale, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // Hair with volume
+        this.ctx.fillStyle = '#4A3000';
+        // Back hair
+        this.ctx.beginPath();
+        this.ctx.moveTo(-8 * scale, -24 * scale);
+        this.ctx.quadraticCurveTo(-12 * scale, -15 * scale, -10 * scale, -5 * scale);
+        this.ctx.quadraticCurveTo(-8 * scale, -10 * scale, -6 * scale, -15 * scale);
+        this.ctx.fill();
+        
+        // Front hair
+        this.ctx.beginPath();
+        this.ctx.moveTo(-8 * scale, -28 * scale);
+        this.ctx.quadraticCurveTo(0, -32 * scale, 8 * scale, -28 * scale);
+        this.ctx.quadraticCurveTo(12 * scale, -24 * scale, 10 * scale, -18 * scale);
+        this.ctx.quadraticCurveTo(6 * scale, -22 * scale, 0, -24 * scale);
+        this.ctx.quadraticCurveTo(-6 * scale, -22 * scale, -8 * scale, -28 * scale);
+        this.ctx.fill();
+        
+        // Face features
+        // Eyes with makeup
+        this.ctx.fillStyle = '#4A3000';
+        this.ctx.beginPath();
+        this.ctx.ellipse(-3 * scale, -21 * scale, 1.5 * scale, 2 * scale, 0, 0, Math.PI * 2);
+        this.ctx.ellipse(3 * scale, -21 * scale, 1.5 * scale, 2 * scale, 0, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // Eyelashes and makeup
+        this.ctx.strokeStyle = '#000';
+        this.ctx.lineWidth = 0.8 * scale;
+        [-3, 3].forEach(eyeX => {
+            for(let i = -1; i <= 1; i++) {
+                this.ctx.beginPath();
+                this.ctx.moveTo(eyeX * scale, (-21 - 2) * scale);
+                this.ctx.lineTo((eyeX + i) * scale, (-21 - 3.5) * scale);
+                this.ctx.stroke();
+            }
+        });
+        
+        // Red lips
+        this.ctx.beginPath();
+        this.ctx.arc(0, -18 * scale, 3 * scale, 0.1, Math.PI - 0.1);
+        this.ctx.strokeStyle = '#FF0000';
+        this.ctx.lineWidth = 1.2 * scale;
+        this.ctx.stroke();
+        
+        this.ctx.restore();
     }
     
     gameLoop() {
