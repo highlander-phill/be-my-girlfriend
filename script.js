@@ -125,11 +125,8 @@ class PacMan {
             x: canvas.width / 2,
             y: canvas.height / 2,
             radius: 20,
-            mouthOpen: 0,
-            mouthDir: 1,
             direction: 0,
-            speed: 4,
-            color: '#FFFF00'
+            speed: 4
         };
         this.hearts = [];
         this.particles = [];
@@ -303,13 +300,7 @@ class PacMan {
     }
     
     update() {
-        // Update mouth animation
-        this.pacman.mouthOpen += 0.15 * this.pacman.mouthDir;
-        if (this.pacman.mouthOpen > 0.5 || this.pacman.mouthOpen < 0) {
-            this.pacman.mouthDir *= -1;
-        }
-        
-        // Move Pac-Man based on keyboard input
+        // Move character based on keyboard input
         let moving = false;
         if (this.keys['ArrowLeft']) {
             this.pacman.x -= this.pacman.speed;
@@ -332,12 +323,7 @@ class PacMan {
             moving = true;
         }
         
-        // Only animate mouth when moving
-        if (!moving) {
-            this.pacman.mouthOpen = Math.max(0, this.pacman.mouthOpen - 0.1);
-        }
-        
-        // Keep Pac-Man in bounds
+        // Keep character in bounds
         this.pacman.x = Math.max(this.pacman.radius, Math.min(this.canvas.width - this.pacman.radius, this.pacman.x));
         this.pacman.y = Math.max(this.pacman.radius, Math.min(this.canvas.height - this.pacman.radius, this.pacman.y));
         
