@@ -8,7 +8,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let game = null;
     
     // Open envelope on click
+    let isAnimating = false;
     envelope.addEventListener('click', () => {
+        if (isAnimating) return; // Prevent multiple clicks
+        isAnimating = true;
+        
         envelope.classList.add('open');
         setTimeout(() => {
             napkin.classList.remove('hidden');
@@ -42,7 +46,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const newYesBtn = document.getElementById('yesBtn');
                 setupButtonListeners(newNoBtn, newYesBtn);
             });
-        }, 500);
+            isAnimating = false; // Reset animation flag
+        }, 1000); // Increased timeout to match animation duration
     });
 
     function setupButtonListeners(noBtn, yesBtn) {
