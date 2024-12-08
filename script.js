@@ -4,8 +4,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const celebration = document.getElementById('celebration');
     let game = null;
     
-    // Open envelope on click
-    envelope.addEventListener('click', () => {
+    // Handle both click and touch events for envelope
+    function handleEnvelopeOpen(e) {
+        e.preventDefault();  // Prevent double-tap zoom on mobile
         if (!envelope.classList.contains('open')) {
             envelope.classList.add('open');
             setTimeout(() => {
@@ -15,7 +16,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 }, 100);
             }, 500);
         }
-    });
+    }
+    
+    if (envelope) {
+        envelope.addEventListener('click', handleEnvelopeOpen);
+        envelope.addEventListener('touchstart', handleEnvelopeOpen);
+    }
 
     // Add click handler for next button
     document.addEventListener('click', (e) => {
