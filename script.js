@@ -16,43 +16,43 @@ document.addEventListener('DOMContentLoaded', () => {
         envelope.classList.add('open');
         setTimeout(() => {
             napkin.classList.remove('hidden');
-            // Add unfolding class after a brief delay to trigger animation
+            // Show content with animation
             setTimeout(() => {
                 napkin.classList.add('unfolding');
-            }, 100);
-            
-            // Show transition message first with next button
-            questionText.innerHTML = `
-                <p class="intro">Hey Tanya... 💕</p>
-                <p class="transition-message">I think transitioning into a relationship is a big deal. I take it very seriously... 😊<br>
-                I like you so much I'm letting us skip the travel rule...<br>
-                I also think it's "cute" to formally ask....so......</p>
-                <button class="next-btn">next ❤️</button>
-            `;
-            
-            // Add click handler for next button
-            const nextBtn = document.querySelector('.next-btn');
-            nextBtn.addEventListener('click', () => {
+                // Show transition message
                 questionText.innerHTML = `
                     <p class="intro">Hey Tanya... 💕</p>
-                    <p class="main-question">will you be my girlfriend?</p>
-                    <div class="checkbox-area">
-                        <div class="checkbox-option">
-                            <button id="yesBtn" class="yes-btn">yes</button>
-                        </div>
-                        <div class="checkbox-option">
-                            <button id="noBtn" class="no-btn">no</button>
-                        </div>
-                    </div>
+                    <p class="transition-message">I think transitioning into a relationship is a big deal. I take it very seriously... 😊<br>
+                    I like you so much I'm letting us skip the travel rule...<br>
+                    I also think it's "cute" to formally ask....so......</p>
+                    <button class="next-btn">next ❤️</button>
                 `;
                 
-                // Reattach event listeners to the new buttons
-                const newNoBtn = document.getElementById('noBtn');
-                const newYesBtn = document.getElementById('yesBtn');
-                setupButtonListeners(newNoBtn, newYesBtn);
-            });
-            isAnimating = false; // Reset animation flag
-        }, 1000); // Increased timeout to match animation duration
+                // Add click handler for next button
+                const nextBtn = document.querySelector('.next-btn');
+                nextBtn.addEventListener('click', () => {
+                    questionText.innerHTML = `
+                        <p class="intro">Hey Tanya... 💕</p>
+                        <p class="main-question">will you be my girlfriend?</p>
+                        <div class="checkbox-area">
+                            <div class="checkbox-option">
+                                <button id="yesBtn" class="yes-btn">yes</button>
+                            </div>
+                            <div class="checkbox-option">
+                                <button id="noBtn" class="no-btn">no</button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Reattach event listeners to the new buttons
+                    const newNoBtn = document.getElementById('noBtn');
+                    const newYesBtn = document.getElementById('yesBtn');
+                    setupButtonListeners(newNoBtn, newYesBtn);
+                });
+            }, 100);
+            isAnimating = false;
+        }, 1000);
+        isAnimating = false; // Reset animation flag
     });
 
     function setupButtonListeners(noBtn, yesBtn) {
