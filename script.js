@@ -16,6 +16,11 @@ document.addEventListener('DOMContentLoaded', () => {
         envelope.classList.add('open');
         setTimeout(() => {
             napkin.classList.remove('hidden');
+            // Add unfolding class after a brief delay to trigger animation
+            setTimeout(() => {
+                napkin.classList.add('unfolding');
+            }, 100);
+            
             // Show transition message first with next button
             questionText.innerHTML = `
                 <p class="intro">Hey Tanya... 💕</p>

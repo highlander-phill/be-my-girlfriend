@@ -88,6 +88,114 @@ body {
 
 /* Napkin Styles */
 .napkin {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    transition: opacity 0.5s;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.napkin-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    background: linear-gradient(45deg, #fff 25%, #f8f9fa 25%, #f8f9fa 50%, #fff 50%, #fff 75%, #f8f9fa 75%, #f8f9fa);
+    background-size: 20px 20px;
+}
+
+.fold {
+    position: absolute;
+    background: white;
+    transition: transform 0.8s ease-in-out;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+.fold-top {
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 50%;
+    transform-origin: top;
+    transform: rotateX(-180deg);
+    z-index: 4;
+}
+
+.fold-right {
+    top: 0;
+    right: 0;
+    width: 50%;
+    height: 100%;
+    transform-origin: right;
+    transform: rotateY(-180deg);
+    z-index: 3;
+}
+
+.fold-bottom {
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 50%;
+    transform-origin: bottom;
+    transform: rotateX(180deg);
+    z-index: 2;
+}
+
+.fold-left {
+    top: 0;
+    left: 0;
+    width: 50%;
+    height: 100%;
+    transform-origin: left;
+    transform: rotateY(180deg);
+    z-index: 1;
+}
+
+.napkin.unfolding .fold-top {
+    transform: rotateX(0deg);
+    transition-delay: 0s;
+}
+
+.napkin.unfolding .fold-right {
+    transform: rotateY(0deg);
+    transition-delay: 0.4s;
+}
+
+.napkin.unfolding .fold-bottom {
+    transform: rotateX(0deg);
+    transition-delay: 0.8s;
+}
+
+.napkin.unfolding .fold-left {
+    transform: rotateY(0deg);
+    transition-delay: 1.2s;
+}
+
+.napkin-content {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    padding: 20px;
+    opacity: 0;
+    transition: opacity 0.5s;
+    transition-delay: 1.6s;
+    z-index: 0;
+}
+
+.napkin.unfolding .napkin-content {
+    opacity: 1;
+}
+
+.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.napkin {
     background: white;
     padding: 20px;
     border-radius: 2px;
