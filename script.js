@@ -1,114 +1,113 @@
 document.addEventListener('DOMContentLoaded', () => {
     const envelope = document.querySelector('.envelope');
     const napkin = document.querySelector('.napkin');
-    const noBtn = document.getElementById('noBtn');
-    const yesBtn = document.getElementById('yesBtn');
     const celebration = document.getElementById('celebration');
-    const questionText = document.querySelector('.question-text');
     let game = null;
     
     // Open envelope on click
-    let isAnimating = false;
     envelope.addEventListener('click', () => {
-        if (isAnimating) return; // Prevent multiple clicks
-        isAnimating = true;
-        
-        envelope.classList.add('open');
-        setTimeout(() => {
-            napkin.classList.remove('hidden');
-            // Show content with animation
+        if (!envelope.classList.contains('open')) {
+            envelope.classList.add('open');
             setTimeout(() => {
-                napkin.classList.add('unfolding');
-                // Show transition message
-                questionText.innerHTML = `
-                    <p class="intro">Hey Tanya... 💕</p>
-                    <p class="transition-message">I think transitioning into a relationship is a big deal. I take it very seriously... 😊<br>
-                    I like you so much I'm letting us skip the travel rule...<br>
-                    I also think it's "cute" to formally ask....so......</p>
-                    <button class="next-btn">next ❤️</button>
-                `;
+                napkin.classList.remove('hidden');
+                setTimeout(() => {
+                    napkin.classList.add('unfolded');
+                }, 100);
+            }, 500);
+        }
+    });
+
+    // Add click handler for next button
+    document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('next-btn')) {
+            const paperContent = document.querySelector('.paper-content');
+            
+            // Remove any existing event listeners from yes/no buttons
+            const oldYesBtn = document.getElementById('yesBtn');
+            const oldNoBtn = document.getElementById('noBtn');
+            if (oldYesBtn) oldYesBtn.replaceWith(oldYesBtn.cloneNode(true));
+            if (oldNoBtn) oldNoBtn.replaceWith(oldNoBtn.cloneNode(true));
+            
+            // Flip the paper
+            paperContent.classList.add('flipped');
+            
+            // Setup new button listeners after a short delay
+            setTimeout(() => {
+                const noBtn = document.getElementById('noBtn');
+                const yesBtn = document.getElementById('yesBtn');
                 
-                // Add click handler for next button
-                const nextBtn = document.querySelector('.next-btn');
-                nextBtn.addEventListener('click', () => {
-                    questionText.innerHTML = `
-                        <p class="intro">Hey Tanya... 💕</p>
-                        <p class="main-question">will you be my girlfriend?</p>
-                        <div class="checkbox-area">
-                            <div class="checkbox-option">
-                                <button id="yesBtn" class="yes-btn">yes</button>
-                            </div>
-                            <div class="checkbox-option">
-                                <button id="noBtn" class="no-btn">no</button>
-                            </div>
-                        </div>
-                    `;
-                    
-                    // Reattach event listeners to the new buttons
-                    const newNoBtn = document.getElementById('noBtn');
-                    const newYesBtn = document.getElementById('yesBtn');
-                    setupButtonListeners(newNoBtn, newYesBtn);
-                });
+                // Move the no button next to yes
+                if (yesBtn && noBtn) {
+                    yesBtn.insertAdjacentElement('afterend', noBtn);
+                }
+                
+                setupButtonListeners(noBtn, yesBtn);
             }, 100);
-            isAnimating = false;
-        }, 1000);
-        isAnimating = false; // Reset animation flag
+        }
     });
 
     function setupButtonListeners(noBtn, yesBtn) {
         let moveCount = 0;
         const maxMoves = 10;
         
-        // Make the "No" button run away from the cursor with effects
-        noBtn.addEventListener('mouseover', () => {
-            moveCount++;
+        function moveButton() {
+            // Get viewport dimensions
+            const screenWidth = window.innerWidth;
+            const screenHeight = window.innerHeight;
+            const buttonWidth = noBtn.offsetWidth;
+            const buttonHeight = noBtn.offsetHeight;
             
-            // Calculate new position within a more restricted area
-            const maxX = window.innerWidth * 0.7 - noBtn.offsetWidth;
-            const maxY = window.innerHeight * 0.7 - noBtn.offsetHeight;
-            const minX = window.innerWidth * 0.1;
-            const minY = window.innerHeight * 0.1;
+            // Keep button within the center area of the screen
+            const centerX = screenWidth / 2;
+            const centerY = screenHeight / 2;
+            const maxDistance = Math.min(screenWidth, screenHeight) * 0.3; // 30% of screen
             
-            const newX = Math.min(Math.max(minX, Math.random() * maxX), maxX);
-            const newY = Math.min(Math.max(minY, Math.random() * maxY), maxY);
+            // Random angle between 0 and 2π
+            const angle = Math.random() * Math.PI * 2;
+            // Random distance from center, but not too far
+            const distance = Math.random() * maxDistance;
             
-            // Add random rotation
-            const rotation = Math.random() * 360;
+            // Calculate new position
+            const newX = centerX + Math.cos(angle) * distance - buttonWidth / 2;
+            const newY = centerY + Math.sin(angle) * distance - buttonHeight / 2;
             
             noBtn.style.position = 'fixed';
             noBtn.style.left = `${newX}px`;
             noBtn.style.top = `${newY}px`;
-            noBtn.style.transform = `rotate(${rotation}deg)`;
+            noBtn.style.zIndex = '1000';
             
-            // Add effects based on move count
-            if (moveCount > maxMoves / 2) {
-                noBtn.style.opacity = Math.max(0.3, 1 - (moveCount / maxMoves));
-                noBtn.style.fontSize = Math.max(0.8, 1 - (moveCount / maxMoves * 0.5)) + 'em';
-            }
-            
-            // Add funny messages
-            const messages = ["Really?", "Are you sure?", "Think again!", "Pretty please?", "Don't do this!"];
+            // Add funny messages back
+            const messages = ["Really?", "Are you sure?", "Think again!", "Pretty please?", "Don't do this!", "But why?", "Give it a chance!", "One more thought?"];
             noBtn.textContent = messages[Math.floor(Math.random() * messages.length)];
-        });
-        
-        // Handle the "Yes" click
-        yesBtn.addEventListener('click', () => {
-            napkin.style.display = 'none';
-            envelope.style.display = 'none';
-            celebration.classList.add('show');
             
-            // Initialize Pac-Man game
-            const canvas = document.getElementById('gameCanvas');
-            game = new PacMan(canvas);
-            
-            // Create floating hearts in the background
-            for (let i = 0; i < 50; i++) {
-                createHeart();
+            moveCount++;
+            if (moveCount >= maxMoves) {
+                noBtn.style.display = 'none';
             }
-        });
+        }
+        
+        if (noBtn) {
+            noBtn.addEventListener('mouseover', moveButton);
+            noBtn.addEventListener('touchstart', moveButton);
+        }
+        
+        if (yesBtn) {
+            yesBtn.addEventListener('click', () => {
+                celebration.style.display = 'block';
+                // Initialize game after showing celebration screen
+                setTimeout(() => {
+                    game = new PacMan(document.getElementById('gameCanvas'));
+                }, 100);
+            });
+        }
     }
 
     // Initial setup of button listeners
+    const noBtn = document.getElementById('noBtn');
+    const yesBtn = document.getElementById('yesBtn');
+    if (yesBtn && noBtn) {
+        yesBtn.insertAdjacentElement('afterend', noBtn);
+    }
     setupButtonListeners(noBtn, yesBtn);
 });
 
@@ -132,8 +131,8 @@ class PacMan {
         this.keys = {};
         
         // Set canvas size
-        this.canvas.width = 600;
-        this.canvas.height = 400;
+        this.canvas.width = 400;
+        this.canvas.height = 300;
         
         // Create initial hearts
         this.createHearts(15);
@@ -403,7 +402,7 @@ class PacMan {
         this.ctx.fillStyle = '#e74c3c';
         this.ctx.shadowColor = '#e74c3c';
         this.ctx.shadowBlur = 10;
-        this.ctx.fillText(`Hearts Collected: ${this.score}`, this.canvas.width / 2, 40);
+        this.ctx.fillText(`Disappointed Guys' Hearts Collected: ${this.score}`, this.canvas.width / 2, 40);
         this.ctx.shadowBlur = 0;
         
         // Draw game elements
