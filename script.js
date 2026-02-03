@@ -1,528 +1,318 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const envelope = document.querySelector('.envelope');
-    const napkin = document.querySelector('.napkin');
-    const celebration = document.getElementById('celebration');
-    let game = null;
-    
-    // Handle both click and touch events for envelope
-    function handleEnvelopeOpen(e) {
-        e.preventDefault();  // Prevent double-tap zoom on mobile
-        if (!envelope.classList.contains('open')) {
-            envelope.classList.add('open');
-            setTimeout(() => {
-                napkin.classList.remove('hidden');
-                setTimeout(() => {
-                    napkin.classList.add('unfolded');
-                }, 100);
-            }, 500);
-        }
-    }
-    
-    if (envelope) {
-        envelope.addEventListener('click', handleEnvelopeOpen);
-        envelope.addEventListener('touchstart', handleEnvelopeOpen);
-    }
+    // --- UI INTERACTIONS ---
+    const env = document.querySelector('.envelope-wrapper');
+    const ppr = document.querySelector('.paper');
+    const area = document.getElementById('actionArea');
+    const no = document.getElementById('noBtn');
 
-    // Add click handler for next button
-    document.addEventListener('click', (e) => {
-        if (e.target.classList.contains('next-btn')) {
-            const paperContent = document.querySelector('.paper-content');
-            
-            // Remove any existing event listeners from yes/no buttons
-            const oldYesBtn = document.getElementById('yesBtn');
-            const oldNoBtn = document.getElementById('noBtn');
-            if (oldYesBtn) oldYesBtn.replaceWith(oldYesBtn.cloneNode(true));
-            if (oldNoBtn) oldNoBtn.replaceWith(oldNoBtn.cloneNode(true));
-            
-            // Flip the paper
-            paperContent.classList.add('flipped');
-            
-            // Setup new button listeners after a short delay
-            setTimeout(() => {
-                const noBtn = document.getElementById('noBtn');
-                const yesBtn = document.getElementById('yesBtn');
-                
-                // Move the no button next to yes
-                if (yesBtn && noBtn) {
-                    yesBtn.insertAdjacentElement('afterend', noBtn);
-                }
-                
-                setupButtonListeners(noBtn, yesBtn);
-            }, 100);
-        }
+    env.addEventListener('click', () => {
+        env.style.transform = 'translateY(-100vh) rotate(-20deg)';
+        setTimeout(() => { env.classList.add('hidden'); ppr.classList.remove('hidden'); }, 600);
     });
 
-    function setupButtonListeners(noBtn, yesBtn) {
-        let moveCount = 0;
-        const maxMoves = 10;
-        
-        function moveButton() {
-            // Get viewport dimensions
-            const screenWidth = window.innerWidth;
-            const screenHeight = window.innerHeight;
-            const buttonWidth = noBtn.offsetWidth;
-            const buttonHeight = noBtn.offsetHeight;
-            
-            // Keep button within the center area of the screen
-            const centerX = screenWidth / 2;
-            const centerY = screenHeight / 2;
-            const maxDistance = Math.min(screenWidth, screenHeight) * 0.3; // 30% of screen
-            
-            // Random angle between 0 and 2π
-            const angle = Math.random() * Math.PI * 2;
-            // Random distance from center, but not too far
-            const distance = Math.random() * maxDistance;
-            
-            // Calculate new position
-            const newX = centerX + Math.cos(angle) * distance - buttonWidth / 2;
-            const newY = centerY + Math.sin(angle) * distance - buttonHeight / 2;
-            
-            noBtn.style.position = 'fixed';
-            noBtn.style.left = `${newX}px`;
-            noBtn.style.top = `${newY}px`;
-            noBtn.style.zIndex = '1000';
-            
-            // Add funny messages back
-            const messages = ["Really?", "Are you sure?", "Think again!", "Pretty please?", "Don't do this!", "But why?", "Give it a chance!", "One more thought?"];
-            noBtn.textContent = messages[Math.floor(Math.random() * messages.length)];
-            
-            moveCount++;
-            if (moveCount >= maxMoves) {
-                noBtn.style.display = 'none';
-            }
-        }
-        
-        if (noBtn) {
-            noBtn.addEventListener('mouseover', moveButton);
-            noBtn.addEventListener('touchstart', moveButton);
-        }
-        
-        if (yesBtn) {
-            yesBtn.addEventListener('click', () => {
-                celebration.style.display = 'block';
-                // Initialize game after showing celebration screen
-                setTimeout(() => {
-                    game = new PacMan(document.getElementById('gameCanvas'));
-                }, 100);
-            });
-        }
-    }
+    const moveNo = () => {
+        no.style.left = Math.random() * (area.clientWidth - no.offsetWidth) + 'px';
+        no.style.top = Math.random() * (area.clientHeight - no.offsetHeight) + 'px';
+        no.style.transform = 'none';
+    };
+    no.addEventListener('mouseover', moveNo);
+    no.addEventListener('touchstart', (e) => { e.preventDefault(); moveNo(); });
 
-    // Initial setup of button listeners
-    const noBtn = document.getElementById('noBtn');
-    const yesBtn = document.getElementById('yesBtn');
-    if (yesBtn && noBtn) {
-        yesBtn.insertAdjacentElement('afterend', noBtn);
-    }
-    setupButtonListeners(noBtn, yesBtn);
+    document.getElementById('yesBtn').addEventListener('click', () => {
+        document.getElementById('celebration').style.display = 'block';
+    });
+
+    // --- GLOBAL INPUT ---
+    window.addEventListener('keydown', (e) => {
+        if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
+        keys[e.code] = true;
+        if(activeGame === 'pacman') {
+            if(e.code === 'ArrowUp') pacNextDir = 1;
+            if(e.code === 'ArrowDown') pacNextDir = 3;
+            if(e.code === 'ArrowLeft') pacNextDir = 2;
+            if(e.code === 'ArrowRight') pacNextDir = 0;
+        }
+    });
+    window.addEventListener('keyup', (e) => keys[e.code] = false);
+
+    ['up','down','left','right'].forEach(dir => {
+        const btn = document.getElementById('d-'+dir);
+        const code = {up:1, down:3, left:2, right:0}[dir];
+        const handler = (e) => { e.preventDefault(); if(activeGame === 'pacman') pacNextDir = code; };
+        btn.addEventListener('touchstart', handler);
+        btn.addEventListener('mousedown', handler);
+    });
 });
 
-class PacMan {
-    constructor(canvas) {
-        this.canvas = canvas;
-        this.ctx = canvas.getContext('2d');
-        this.pacman = {
-            x: canvas.width / 2,
-            y: canvas.height / 2,
-            radius: 20,
-            direction: 0,
-            speed: 4
-        };
-        this.hearts = [];
-        this.particles = [];
-        this.score = 0;
-        this.keys = {};
-        
-        // Set canvas size
-        this.canvas.width = 400;
-        this.canvas.height = 300;
-        
-        // Create initial hearts
-        this.createHearts(15);
-        
-        // Event listeners for keyboard
-        window.addEventListener('keydown', (e) => this.keys[e.key] = true);
-        window.addEventListener('keyup', (e) => this.keys[e.key] = false);
-        
-        // Touch controls
-        const upBtn = document.querySelector('.up-btn');
-        const downBtn = document.querySelector('.down-btn');
-        const leftBtn = document.querySelector('.left-btn');
-        const rightBtn = document.querySelector('.right-btn');
-        
-        // Handle both touch and mouse events
-        const handleStart = (key) => {
-            this.keys[key] = true;
-        };
-        
-        const handleEnd = (key) => {
-            this.keys[key] = false;
-        };
-        
-        // Add both touch and click events for each button
-        if (upBtn) {
-            upBtn.addEventListener('touchstart', () => handleStart('ArrowUp'));
-            upBtn.addEventListener('touchend', () => handleEnd('ArrowUp'));
-            upBtn.addEventListener('mousedown', () => handleStart('ArrowUp'));
-            upBtn.addEventListener('mouseup', () => handleEnd('ArrowUp'));
-            upBtn.addEventListener('mouseleave', () => handleEnd('ArrowUp'));
-        }
-        if (downBtn) {
-            downBtn.addEventListener('touchstart', () => handleStart('ArrowDown'));
-            downBtn.addEventListener('touchend', () => handleEnd('ArrowDown'));
-            downBtn.addEventListener('mousedown', () => handleStart('ArrowDown'));
-            downBtn.addEventListener('mouseup', () => handleEnd('ArrowDown'));
-            downBtn.addEventListener('mouseleave', () => handleEnd('ArrowDown'));
-        }
-        if (leftBtn) {
-            leftBtn.addEventListener('touchstart', () => handleStart('ArrowLeft'));
-            leftBtn.addEventListener('touchend', () => handleEnd('ArrowLeft'));
-            leftBtn.addEventListener('mousedown', () => handleStart('ArrowLeft'));
-            leftBtn.addEventListener('mouseup', () => handleEnd('ArrowLeft'));
-            leftBtn.addEventListener('mouseleave', () => handleEnd('ArrowLeft'));
-        }
-        if (rightBtn) {
-            rightBtn.addEventListener('touchstart', () => handleStart('ArrowRight'));
-            rightBtn.addEventListener('touchend', () => handleEnd('ArrowRight'));
-            rightBtn.addEventListener('mousedown', () => handleStart('ArrowRight'));
-            rightBtn.addEventListener('mouseup', () => handleEnd('ArrowRight'));
-            rightBtn.addEventListener('mouseleave', () => handleEnd('ArrowRight'));
-        }
-        
-        // Prevent default behavior
-        document.querySelectorAll('.control-btn').forEach(btn => {
-            btn.addEventListener('touchstart', (e) => e.preventDefault());
-            btn.addEventListener('touchend', (e) => e.preventDefault());
-            btn.addEventListener('mousedown', (e) => e.preventDefault());
-            btn.addEventListener('mouseup', (e) => e.preventDefault());
-        });
-        
-        // Start game loop
-        this.gameLoop();
-    }
+let gameLoopId;
+let activeGame = null;
+let keys = {};
+let pacNextDir = 0;
+
+function resetToMenu() {
+    if(gameLoopId) cancelAnimationFrame(gameLoopId);
+    activeGame = null;
+    document.getElementById('arcade-wrap').classList.add('hidden');
+    document.getElementById('game-selection').classList.remove('hidden');
+    document.getElementById('game-over').classList.add('hidden');
+}
+
+function restartLevel() {
+    if(activeGame) initGame(activeGame);
+}
+
+function initGame(type) {
+    document.getElementById('game-selection').classList.add('hidden');
+    document.getElementById('arcade-wrap').classList.remove('hidden');
+    document.getElementById('game-over').classList.add('hidden');
+    document.getElementById('dpad').classList.add('hidden');
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
     
-    createHearts(count) {
-        for (let i = 0; i < count; i++) {
-            this.hearts.push({
-                x: Math.random() * (this.canvas.width - 40) + 20,
-                y: Math.random() * (this.canvas.height - 40) + 20,
-                size: 15,
-                rotation: Math.random() * Math.PI * 2,
-                collected: false,
-                pulseScale: 1,
-                pulseDir: 0.02
-            });
-        }
-    }
-    
-    createParticles(x, y, color) {
-        for (let i = 0; i < 8; i++) {
-            const angle = (Math.PI * 2 * i) / 8;
-            this.particles.push({
-                x,
-                y,
-                vx: Math.cos(angle) * 3,
-                vy: Math.sin(angle) * 3,
-                size: 5,
-                color,
-                life: 1
-            });
-        }
-    }
-    
-    drawHeart(heart) {
-        if (heart.collected) return;
+    if(gameLoopId) cancelAnimationFrame(gameLoopId);
+    activeGame = type;
+    let score = 0;
+    document.getElementById('score').innerText = '0';
+    let frame = 0;
+    let alive = true;
+
+    // --- PAC-MAN ENGINE ---
+    if (type === 'pacman') {
+        canvas.width = 336; canvas.height = 380;
+        document.getElementById('dpad').classList.remove('hidden');
         
-        this.ctx.save();
-        this.ctx.translate(heart.x, heart.y);
-        this.ctx.rotate(heart.rotation);
-        this.ctx.scale(heart.pulseScale, heart.pulseScale);
-        
-        // Draw heart glow
-        const gradient = this.ctx.createRadialGradient(0, 0, heart.size * 0.5, 0, 0, heart.size * 2);
-        gradient.addColorStop(0, 'rgba(231, 76, 60, 0.3)');
-        gradient.addColorStop(1, 'rgba(231, 76, 60, 0)');
-        this.ctx.fillStyle = gradient;
-        this.ctx.beginPath();
-        this.drawHeartPath(this.ctx, 0, 0, heart.size * 1.5);
-        this.ctx.fill();
-        
-        // Draw heart
-        this.ctx.beginPath();
-        this.drawHeartPath(this.ctx, 0, 0, heart.size);
-        this.ctx.fillStyle = '#e74c3c';
-        this.ctx.fill();
-        
-        this.ctx.restore();
-        
-        // Update pulse animation
-        heart.pulseScale += heart.pulseDir;
-        if (heart.pulseScale > 1.2 || heart.pulseScale < 0.8) {
-            heart.pulseDir *= -1;
-        }
-    }
-    
-    drawHeartPath(ctx, x, y, size) {
-        ctx.moveTo(x, y + size / 2);
-        ctx.bezierCurveTo(
-            x + size / 2, y - size / 2,
-            x + size, y + size / 2,
-            x, y + size * 1.5
-        );
-        ctx.bezierCurveTo(
-            x - size, y + size / 2,
-            x - size / 2, y - size / 2,
-            x, y + size / 2
-        );
-    }
-    
-    updateParticles() {
-        for (let i = this.particles.length - 1; i >= 0; i--) {
-            const particle = this.particles[i];
-            particle.x += particle.vx;
-            particle.y += particle.vy;
-            particle.life -= 0.02;
-            particle.size *= 0.95;
-            
-            if (particle.life <= 0) {
-                this.particles.splice(i, 1);
-            }
-        }
-    }
-    
-    drawParticles() {
-        this.particles.forEach(particle => {
-            this.ctx.fillStyle = `rgba(231, 76, 60, ${particle.life})`;
-            this.ctx.beginPath();
-            this.ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
-            this.ctx.fill();
-        });
-    }
-    
-    update() {
-        // Move character based on keyboard input
-        let moving = false;
-        if (this.keys['ArrowLeft']) {
-            this.pacman.x -= this.pacman.speed;
-            this.pacman.direction = Math.PI;
-            moving = true;
-        }
-        if (this.keys['ArrowRight']) {
-            this.pacman.x += this.pacman.speed;
-            this.pacman.direction = 0;
-            moving = true;
-        }
-        if (this.keys['ArrowUp']) {
-            this.pacman.y -= this.pacman.speed;
-            this.pacman.direction = -Math.PI/2;
-            moving = true;
-        }
-        if (this.keys['ArrowDown']) {
-            this.pacman.y += this.pacman.speed;
-            this.pacman.direction = Math.PI/2;
-            moving = true;
-        }
-        
-        // Keep character in bounds
-        this.pacman.x = Math.max(this.pacman.radius, Math.min(this.canvas.width - this.pacman.radius, this.pacman.x));
-        this.pacman.y = Math.max(this.pacman.radius, Math.min(this.canvas.height - this.pacman.radius, this.pacman.y));
-        
-        // Check collision with hearts
-        this.hearts.forEach(heart => {
-            if (!heart.collected) {
-                const dx = heart.x - this.pacman.x;
-                const dy = heart.y - this.pacman.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                
-                if (distance < this.pacman.radius + heart.size) {
-                    heart.collected = true;
-                    this.score++;
-                    this.createParticles(heart.x, heart.y, '#e74c3c');
-                    
-                    // Create new hearts when all are collected
-                    if (this.hearts.every(h => h.collected)) {
-                        this.createHearts(15);
+        const TILE = 16;
+        const map = [
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+            [1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1],
+            [1,8,1,1,1,1,0,1,1,0,1,0,1,1,0,1,1,1,1,8,1],
+            [1,0,1,1,1,1,0,1,1,0,1,0,1,1,0,1,1,1,1,0,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,0,1,1,1,1,0,1,0,1,1,1,0,1,0,1,1,1,1,0,1],
+            [1,0,0,0,0,0,0,1,0,0,1,0,0,1,0,0,0,0,0,0,1],
+            [1,1,1,1,1,1,0,1,1,9,9,9,1,1,0,1,1,1,1,1,1],
+            [9,9,9,9,9,9,0,1,9,9,9,9,9,1,0,9,9,9,9,9,9],
+            [1,1,1,1,1,1,0,1,9,9,9,9,9,1,0,1,1,1,1,1,1],
+            [1,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,1],
+            [1,0,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,0,1],
+            [1,8,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,8,1],
+            [1,1,0,1,0,1,0,1,1,1,1,1,1,1,0,1,0,1,0,1,1],
+            [1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1],
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+        ];
+
+        let player = { x: 10, y: 14, dir: 0 };
+        let ghosts = [
+            { x: 9, y: 8, color: 'red', dir: 1, vulnerable: false },
+            { x: 10, y: 8, color: 'pink', dir: -1, vulnerable: false },
+            { x: 11, y: 8, color: 'cyan', dir: 1, vulnerable: false }
+        ];
+        let powerTimer = 0;
+        pacNextDir = 0;
+
+        function pacLoop() {
+            if(!alive) return;
+            frame++;
+            if(powerTimer > 0) powerTimer--;
+
+            ctx.fillStyle = 'black'; ctx.fillRect(0,0,canvas.width,canvas.height);
+            for(let y=0; y<map.length; y++) {
+                for(let x=0; x<map[y].length; x++) {
+                    if(map[y][x] === 1) {
+                        ctx.fillStyle = '#1919A6'; ctx.fillRect(x*TILE, y*TILE, TILE, TILE);
+                    } else if(map[y][x] === 0) {
+                        ctx.fillStyle = '#ffb8ae'; ctx.fillRect(x*TILE+6, y*TILE+6, 4, 4);
+                    } else if(map[y][x] === 8) {
+                        ctx.fillStyle = (frame % 20 < 10) ? '#ffb8ae' : '#000';
+                        ctx.beginPath(); ctx.arc(x*TILE+8, y*TILE+8, 6, 0, Math.PI*2); ctx.fill();
                     }
                 }
             }
-        });
-        
-        // Update particles
-        this.updateParticles();
-    }
-    
-    draw() {
-        // Clear canvas with trail effect
-        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-        
-        // Draw game elements
-        this.hearts.forEach(heart => this.drawHeart(heart));
-        this.drawParticles();
-        this.drawPlayer();
-        
-        // Draw score text with background
-        this.ctx.save();
-        // Add semi-transparent background for text
-        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        const textMetrics = this.ctx.measureText(`Disappointed Guys' Hearts: ${this.score}`);
-        const padding = 10;
-        this.ctx.fillRect(
-            this.canvas.width / 2 - textMetrics.width / 2 - padding,
-            10,
-            textMetrics.width + padding * 2,
-            40
-        );
-        
-        // Draw score text
-        this.ctx.textAlign = 'center';
-        this.ctx.font = 'bold 28px Arial';
-        this.ctx.fillStyle = '#e74c3c';
-        this.ctx.fillText(`Disappointed Guys' Hearts: ${this.score}`, this.canvas.width / 2, 40);
-        this.ctx.restore();
-    }
-    
-    drawPlayer() {
-        const { x, y, radius, direction } = this.pacman;
-        
-        this.ctx.save();
-        this.ctx.translate(x, y);
-        this.ctx.rotate(direction);
-        
-        const scale = radius / 12;
-        
-        // Legs with boots
-        this.ctx.fillStyle = '#FFE4C4';  // Skin tone for legs
-        this.ctx.beginPath();
-        // Right leg
-        this.ctx.moveTo(5 * scale, 5 * scale);
-        this.ctx.lineTo(7 * scale, 18 * scale);
-        this.ctx.lineTo(3 * scale, 18 * scale);
-        this.ctx.lineTo(2 * scale, 5 * scale);
-        // Left leg
-        this.ctx.moveTo(-5 * scale, 5 * scale);
-        this.ctx.lineTo(-7 * scale, 18 * scale);
-        this.ctx.lineTo(-3 * scale, 18 * scale);
-        this.ctx.lineTo(-2 * scale, 5 * scale);
-        this.ctx.fill();
 
-        // Boots
-        this.ctx.fillStyle = '#000';
-        this.ctx.beginPath();
-        // Right boot
-        this.ctx.moveTo(7 * scale, 18 * scale);
-        this.ctx.lineTo(8 * scale, 22 * scale);
-        this.ctx.lineTo(2 * scale, 22 * scale);
-        this.ctx.lineTo(3 * scale, 18 * scale);
-        // Left boot
-        this.ctx.moveTo(-7 * scale, 18 * scale);
-        this.ctx.lineTo(-8 * scale, 22 * scale);
-        this.ctx.lineTo(-2 * scale, 22 * scale);
-        this.ctx.lineTo(-3 * scale, 18 * scale);
-        this.ctx.fill();
-        
-        // Short dress
-        this.ctx.fillStyle = '#FF1493';  // Deep pink
-        this.ctx.beginPath();
-        this.ctx.moveTo(0, -15 * scale);
-        // Right side with curve
-        this.ctx.quadraticCurveTo(10 * scale, -12 * scale, 12 * scale, -5 * scale);
-        this.ctx.quadraticCurveTo(10 * scale, 0, 8 * scale, 5 * scale);
-        // Bottom of dress
-        this.ctx.quadraticCurveTo(0, 7 * scale, -8 * scale, 5 * scale);
-        // Left side with curve
-        this.ctx.quadraticCurveTo(-10 * scale, 0, -12 * scale, -5 * scale);
-        this.ctx.quadraticCurveTo(-10 * scale, -12 * scale, 0, -15 * scale);
-        this.ctx.fill();
+            if(frame % 8 === 0) {
+                let dx=0, dy=0;
+                if(pacNextDir===0) dx=1; if(pacNextDir===1) dy=-1; if(pacNextDir===2) dx=-1; if(pacNextDir===3) dy=1;
+                
+                let nextX = player.x + dx; let nextY = player.y + dy;
+                if(nextX < 0 || nextX >= map[0].length || map[nextY][nextX] !== 1) player.dir = pacNextDir;
 
-        // Cleavage detail
-        this.ctx.strokeStyle = '#FF1493';
-        this.ctx.lineWidth = 1.5 * scale;
-        this.ctx.beginPath();
-        this.ctx.moveTo(-4 * scale, -12 * scale);
-        this.ctx.quadraticCurveTo(0, -8 * scale, 4 * scale, -12 * scale);
-        this.ctx.stroke();
-        
-        // Head
-        this.ctx.fillStyle = '#FFE4C4';
-        this.ctx.beginPath();
-        this.ctx.arc(0, -20 * scale, 8 * scale, 0, Math.PI * 2);
-        this.ctx.fill();
-        
-        // Hair with volume
-        this.ctx.fillStyle = '#4A3000';
-        // Back hair
-        this.ctx.beginPath();
-        this.ctx.moveTo(-8 * scale, -24 * scale);
-        this.ctx.quadraticCurveTo(-12 * scale, -15 * scale, -10 * scale, -5 * scale);
-        this.ctx.quadraticCurveTo(-8 * scale, -10 * scale, -6 * scale, -15 * scale);
-        this.ctx.fill();
-        
-        // Front hair
-        this.ctx.beginPath();
-        this.ctx.moveTo(-8 * scale, -28 * scale);
-        this.ctx.quadraticCurveTo(0, -32 * scale, 8 * scale, -28 * scale);
-        this.ctx.quadraticCurveTo(12 * scale, -24 * scale, 10 * scale, -18 * scale);
-        this.ctx.quadraticCurveTo(6 * scale, -22 * scale, 0, -24 * scale);
-        this.ctx.quadraticCurveTo(-6 * scale, -22 * scale, -8 * scale, -28 * scale);
-        this.ctx.fill();
-        
-        // Face features
-        // Eyes with makeup
-        this.ctx.fillStyle = '#4A3000';
-        this.ctx.beginPath();
-        this.ctx.ellipse(-3 * scale, -21 * scale, 1.5 * scale, 2 * scale, 0, 0, Math.PI * 2);
-        this.ctx.ellipse(3 * scale, -21 * scale, 1.5 * scale, 2 * scale, 0, 0, Math.PI * 2);
-        this.ctx.fill();
-        
-        // Eyelashes and makeup
-        this.ctx.strokeStyle = '#000';
-        this.ctx.lineWidth = 0.8 * scale;
-        [-3, 3].forEach(eyeX => {
-            for(let i = -1; i <= 1; i++) {
-                this.ctx.beginPath();
-                this.ctx.moveTo(eyeX * scale, (-21 - 2) * scale);
-                this.ctx.lineTo((eyeX + i) * scale, (-21 - 3.5) * scale);
-                this.ctx.stroke();
+                dx=0; dy=0;
+                if(player.dir===0) dx=1; if(player.dir===1) dy=-1; if(player.dir===2) dx=-1; if(player.dir===3) dy=1;
+                
+                let destX = player.x + dx; let destY = player.y + dy;
+                if (destX < 0) player.x = map[0].length - 1;
+                else if (destX >= map[0].length) player.x = 0;
+                else if (map[destY][destX] !== 1) { player.x = destX; player.y = destY; }
+
+                let tile = map[player.y][player.x];
+                if(tile === 0) { map[player.y][player.x] = 9; document.getElementById('score').innerText = (score += 10); }
+                else if(tile === 8) { 
+                    map[player.y][player.x] = 9; document.getElementById('score').innerText = (score += 50); 
+                    powerTimer = 400; ghosts.forEach(g => g.vulnerable = true); 
+                }
             }
-        });
-        
-        // Red lips
-        this.ctx.beginPath();
-        this.ctx.arc(0, -18 * scale, 3 * scale, 0.1, Math.PI - 0.1);
-        this.ctx.strokeStyle = '#FF0000';
-        this.ctx.lineWidth = 1.2 * scale;
-        this.ctx.stroke();
-        
-        this.ctx.restore();
-    }
-    
-    gameLoop() {
-        this.update();
-        this.draw();
-        requestAnimationFrame(() => this.gameLoop());
-    }
-}
 
-function createHeart() {
-    const heart = document.createElement('div');
-    heart.innerHTML = '💖';
-    heart.style.position = 'fixed';
-    heart.style.fontSize = Math.random() * 20 + 10 + 'px';
-    heart.style.left = Math.random() * 100 + 'vw';
-    heart.style.top = '100vh';
-    heart.style.opacity = '0';
-    heart.style.transform = `rotate(${Math.random() * 360}deg)`;
-    heart.style.transition = 'all ' + (Math.random() * 2 + 3) + 's ease-out';
-    
-    document.body.appendChild(heart);
-    
-    setTimeout(() => {
-        heart.style.opacity = '1';
-        heart.style.top = '-50px';
-    }, 100);
-    
-    setTimeout(() => {
-        heart.remove();
-    }, 5000);
+            if(frame % 12 === 0) {
+                ghosts.forEach(g => {
+                    if(g.vulnerable && frame % 24 !== 0) return;
+                    let dirs = [];
+                    if(map[g.y-1] && map[g.y-1][g.x]!==1) dirs.push(1);
+                    if(map[g.y+1] && map[g.y+1][g.x]!==1) dirs.push(3);
+                    if(map[g.y][g.x-1]!==1) dirs.push(2);
+                    if(map[g.y][g.x+1]!==1) dirs.push(0);
+                    
+                    if(dirs.length > 0) {
+                        if (g.vulnerable) g.dir = dirs[Math.floor(Math.random()*dirs.length)];
+                        else {
+                             let bestDir = dirs[Math.floor(Math.random()*dirs.length)];
+                             if(player.x > g.x && dirs.includes(0)) bestDir = 0;
+                             if(player.x < g.x && dirs.includes(2)) bestDir = 2;
+                             if(player.y > g.y && dirs.includes(3)) bestDir = 3;
+                             if(player.y < g.y && dirs.includes(1)) bestDir = 1;
+                             g.dir = bestDir;
+                        }
+                    }
+                    if(g.dir===0) g.x++; if(g.dir===1) g.y--; if(g.dir===2) g.x--; if(g.dir===3) g.y++;
+                    
+                    if(g.x === player.x && g.y === player.y) {
+                        if(g.vulnerable) { g.x = 10; g.y = 8; g.vulnerable = false; document.getElementById('score').innerText = (score += 200); }
+                        else { alive = false; document.getElementById('game-over').classList.remove('hidden'); }
+                    }
+                });
+            }
+            if(powerTimer === 0) ghosts.forEach(g => g.vulnerable = false);
+
+            ctx.fillStyle = 'yellow'; ctx.beginPath(); ctx.arc(player.x*TILE+8, player.y*TILE+8, 7, 0.2*Math.PI, 1.8*Math.PI); ctx.lineTo(player.x*TILE+8, player.y*TILE+8); ctx.fill();
+            ghosts.forEach(g => {
+                ctx.fillStyle = g.vulnerable ? (powerTimer < 100 && frame % 10 < 5 ? 'white' : 'blue') : g.color;
+                ctx.beginPath(); ctx.arc(g.x*TILE+8, g.y*TILE+8, 7, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = 'white'; ctx.fillRect(g.x*TILE+4, g.y*TILE+4, 3, 3); ctx.fillRect(g.x*TILE+9, g.y*TILE+4, 3, 3);
+            });
+            gameLoopId = requestAnimationFrame(pacLoop);
+        }
+        pacLoop();
+
+    // --- SPACE INVADERS ENGINE ---
+    } else if (type === 'invaders') {
+        canvas.width = 340; canvas.height = 450;
+        let player = { x: 150, w: 40, h: 20 };
+        let bullets = [];
+        let invaders = [];
+        let invDir = 1;
+        
+        for(let r=0; r<4; r++) for(let c=0; c<6; c++) invaders.push({ x: 30+c*45, y: 30+r*35, t: r===0?'🐙':'👾' });
+
+        function fire() { bullets.push({ x: player.x+15, y: 400 }); }
+        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); fire(); });
+        canvas.addEventListener('touchmove', (e) => { e.preventDefault(); player.x = e.touches[0].clientX - canvas.getBoundingClientRect().left - 20; });
+        window.addEventListener('keydown', (e) => { if(e.code==='Space' && alive && type==='invaders') fire(); });
+
+        function invLoop() {
+            if(!alive) return;
+            frame++;
+            ctx.fillStyle = '#000'; ctx.fillRect(0,0,canvas.width,canvas.height);
+            
+            if(invaders.length === 0) { document.getElementById('game-over').querySelector('h2').innerText = "YOU WIN!"; alive=false; document.getElementById('game-over').classList.remove('hidden'); }
+            if(keys['ArrowLeft']) player.x -= 5;
+            if(keys['ArrowRight']) player.x += 5;
+            player.x = Math.max(0, Math.min(canvas.width-40, player.x));
+
+            let hitEdge = false;
+            if(frame % 2 === 0) {
+                invaders.forEach(inv => {
+                    inv.x += (2 * invDir);
+                    if(inv.x > canvas.width - 30 || inv.x < 0) hitEdge = true;
+                });
+                if(hitEdge) { invDir *= -1; invaders.forEach(inv => inv.y += 10); }
+            }
+
+            ctx.font = '24px Arial';
+            invaders.forEach(inv => {
+                ctx.fillText(inv.t, inv.x, inv.y);
+                if(inv.y > 380) { alive = false; document.getElementById('game-over').classList.remove('hidden'); }
+            });
+
+            bullets.forEach((b, i) => {
+                b.y -= 7; ctx.fillText('❤️', b.x, b.y);
+                invaders.forEach((inv, ii) => {
+                    if(b.x > inv.x && b.x < inv.x+30 && b.y < inv.y && b.y > inv.y-20) {
+                        invaders.splice(ii, 1); bullets.splice(i, 1);
+                        document.getElementById('score').innerText = (score += 100);
+                    }
+                });
+            });
+
+            ctx.fillStyle = '#00ff00'; ctx.fillRect(player.x, 420, 40, 20); ctx.fillRect(player.x+15, 410, 10, 10);
+            gameLoopId = requestAnimationFrame(invLoop);
+        }
+        invLoop();
+
+    // --- PAPERBOY ENGINE (IMPROVED) ---
+    } else if (type === 'paperboy') {
+        canvas.width = 340; canvas.height = 450;
+        let player = { x: 170, y: 350 };
+        let world = []; let hearts = [];
+        
+        canvas.addEventListener('touchmove', e => { e.preventDefault(); player.x = e.touches[0].clientX - canvas.getBoundingClientRect().left - 20; }, {passive:false});
+        canvas.addEventListener('touchstart', e => { e.preventDefault(); hearts.push({x: player.x+20, y: player.y, vx: -5, vy: -5}); }); // Throw LEFT
+        window.addEventListener('keydown', (e) => { if(e.code==='Space' && alive && type==='paperboy') hearts.push({x: player.x+20, y: player.y, vx: -5, vy: -5}); });
+
+        function pbLoop() {
+            if(!alive) return;
+            frame++;
+            
+            // Draw Grass
+            ctx.fillStyle = '#2d5a27'; ctx.fillRect(0,0,340,450);
+            
+            // Draw Road (Wider, shifting perspective)
+            ctx.fillStyle = '#555'; 
+            ctx.beginPath(); 
+            ctx.moveTo(100, 0); ctx.lineTo(340, 0); 
+            ctx.lineTo(340, 450); ctx.lineTo(100, 450); 
+            ctx.fill();
+            
+            // Sidewalk
+            ctx.fillStyle = '#777';
+            ctx.fillRect(80, 0, 20, 450);
+
+            if(keys['ArrowLeft']) player.x -= 5;
+            if(keys['ArrowRight']) player.x += 5;
+            player.x = Math.max(100, Math.min(300, player.x)); // Stay on road
+
+            // Spawn Logic: Varied positions on the LEFT lawn
+            if(frame % 50 === 0) {
+                let isHouse = Math.random() > 0.4;
+                // Randomize X to be on the left lawn (0 to 60)
+                let spawnX = Math.random() * 50; 
+                world.push({x: spawnX, y: -50, t: isHouse ? '🏠' : '🚗', hit: false, isCar: !isHouse});
+            }
+            
+            world.forEach((w, i) => {
+                // Objects scroll down and slightly right to fake perspective
+                w.y += 5; 
+                w.x += 1.5; 
+
+                // Cars spawn in road (override)
+                if(w.isCar && w.y < 0) w.x = 200; 
+
+                ctx.font = '40px Arial'; ctx.fillText(w.hit?'💖':w.t, w.x, w.y);
+                
+                // Collision with Player (Car)
+                if(w.isCar && Math.hypot(player.x-w.x, player.y-w.y) < 30) { alive = false; document.getElementById('game-over').classList.remove('hidden'); }
+                if(w.y > 500) world.splice(i, 1);
+            });
+
+            hearts.forEach((h, i) => {
+                h.x += h.vx; h.y += h.vy; ctx.font = '20px Arial'; ctx.fillText('❤️', h.x, h.y);
+                world.forEach(w => {
+                    if(w.t==='🏠' && !w.hit && Math.hypot(h.x-w.x, h.y-w.y) < 40) { w.hit=true; document.getElementById('score').innerText = (score += 50); }
+                });
+            });
+
+            ctx.font = '40px Arial'; ctx.fillText('🚲', player.x, player.y);
+            gameLoopId = requestAnimationFrame(pbLoop);
+        }
+        pbLoop();
+    }
 }

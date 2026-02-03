@@ -2,79 +2,65 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>For Tanya ❤️</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>To: Krystle ❤️</title>
+    <link href="https://fonts.googleapis.com/css2?family=Indie+Flower&family=Permanent+Marker&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
-        <div class="envelope-wrapper">
+        <div class="envelope-wrapper animated-fly-in">
             <div class="envelope">
-                <div class="envelope-back"></div>
-                <div class="bottom-flap"></div>
-                <div class="side-flap-left"></div>
-                <div class="side-flap-right"></div>
-                <div class="envelope-front">
-                    <div class="envelope-flap"></div>
-                    <div class="envelope-content">
-                        <p>For Tanya ❤️</p>
-                        <p class="tap-hint">(tap to open)</p>
-                    </div>
-                </div>
+                <div class="envelope-flap"></div>
+                <div class="envelope-content"><p class="name-tag">Krystle</p></div>
             </div>
         </div>
         
-        <div class="napkin hidden">
-            <div class="napkin-inner">
-                <div class="folded-paper">
-                    <div class="paper-content">
-                        <div class="paper-fold top"></div>
-                        <div class="paper-fold middle">
-                            <div class="question-text">
-                                <p class="intro">Hey Tanya... 💕</p>
-                                <p class="transition-message">I think transitioning into a relationship is a big deal. I take it very seriously... 😊<br>
-                                I like you so much I'm letting us skip the travel rule...<br>
-                                I also think it's "cute" to formally ask....so......</p>
-                                <button class="next-btn">next ❤️</button>
-                            </div>
-                            <div class="question-text-back">
-                                <p class="intro">Hey Tanya... 💕</p>
-                                <p class="main-question">will you be my girlfriend?</p>
-                                <div class="checkbox-area">
-                                    <button id="yesBtn" class="yes-btn">yes</button>
-                                    <button id="noBtn" class="no-btn">no</button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="paper-fold bottom"></div>
-                    </div>
+        <div class="paper hidden">
+            <div class="paper-content">
+                <p class="intro">Hey Krystle... 💕</p>
+                <p class="message">I thought I'd ask you the old fashioned way...</p>
+                <p class="main-question">Will you be my girlfriend?</p>
+                <div class="action-area" id="actionArea">
+                    <button id="yesBtn" class="yes-btn">YES</button>
+                    <button id="noBtn" class="no-btn">NO</button>
                 </div>
-                <div class="fold fold-top"></div>
-                <div class="fold fold-right"></div>
-                <div class="fold fold-bottom"></div>
-                <div class="fold fold-left"></div>
             </div>
         </div>
 
         <div class="celebration" id="celebration">
-            <div class="celebration-content">
-                <h1>You are truly amazing!! 💖</h1>
-                <p>I'm excited to see what we can build together!</p>
+            <div id="game-selection">
+                <h2 class="arcade-title">SELECT GAME</h2>
+                <button class="menu-btn" onclick="initGame('paperboy')">PAPERBOY: LOVE DELIVERY</button>
+                <button class="menu-btn" onclick="initGame('pacman')">PAC-KRYSTLE: EX-HUNTER</button>
+                <button class="menu-btn" onclick="initGame('invaders')">SPACE INVADERS: DEFENSE</button>
+            </div>
+            
+            <div id="arcade-wrap" class="hidden">
+                <div class="stats-bar">
+                    <span id="score-label">SCORE: <span id="score">0</span></span>
+                    <button onclick="resetToMenu()" class="exit-btn">MENU</button>
+                </div>
+                
                 <canvas id="gameCanvas"></canvas>
-                <div class="touch-controls">
-                    <button class="control-btn up-btn">⬆️</button>
-                    <div class="horizontal-controls">
-                        <button class="control-btn left-btn">⬅️</button>
-                        <button class="control-btn right-btn">➡️</button>
+                
+                <div id="dpad" class="hidden">
+                    <div class="dpad-row"><button class="d-btn" id="d-up">⬆️</button></div>
+                    <div class="dpad-row">
+                        <button class="d-btn" id="d-left">⬅️</button>
+                        <button class="d-btn" id="d-right">➡️</button>
                     </div>
-                    <button class="control-btn down-btn">⬇️</button>
+                    <div class="dpad-row"><button class="d-btn" id="d-down">⬇️</button></div>
+                </div>
+
+                <div id="game-over" class="hidden">
+                    <h2 class="blink" style="color:red; margin-bottom: 10px;">GAME OVER</h2>
+                    <button onclick="restartLevel()" class="menu-btn">TRY AGAIN</button>
+                    <button onclick="resetToMenu()" class="menu-btn" style="background: #333; border-color: #666;">MAIN MENU</button>
                 </div>
             </div>
         </div>
     </div>
-    <script src="script.js?v=2"></script>
+    <script src="script.js"></script>
 </body>
 </html>
