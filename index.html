@@ -53,7 +53,10 @@
                             <div class="doc-date">Date: <span id="current-date"></span></div>
                         </div>
                     </div>
-                    <button id="acceptTermsBtn" class="docusign-btn">FINISH</button>
+                    <button id="acceptTermsBtn" class="docusign-btn disabled">I ACCEPT THESE TERMS</button>
+                    <label style="display:block; margin-top:10px; font-size:0.8rem;">
+                        <input type="checkbox" id="terms-checkbox"> I have read the agreement
+                    </label>
                 </div>
             </div>
         </div>
@@ -72,6 +75,7 @@
                     <span id="score-label">SCORE: <span id="score">0</span></span>
                     <button onclick="resetToMenu()" class="exit-btn">MENU</button>
                 </div>
+                
                 <canvas id="gameCanvas"></canvas>
                 
                 <div id="dpad" class="hidden">
