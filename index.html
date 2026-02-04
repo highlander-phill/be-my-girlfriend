@@ -9,21 +9,32 @@
 </head>
 <body>
     <div class="container">
-        <div class="envelope-wrapper animated-fly-in">
+        <div class="envelope-wrapper" id="envelope-wrap">
             <div class="envelope">
-                <div class="envelope-flap"></div>
-                <div class="envelope-content"><p class="name-tag">Krystle</p></div>
+                <div class="flap top-flap"></div>
+                <div class="flap side-flap left-flap"></div>
+                <div class="flap side-flap right-flap"></div>
+                <div class="flap bottom-flap"></div>
+                <div class="letter-preview"></div>
+                <div class="envelope-front"><p class="name-tag">Krystle</p></div>
             </div>
         </div>
         
-        <div class="paper hidden">
+        <div class="paper hidden" id="main-paper">
             <div class="paper-content">
-                <p class="intro">Hey Krystle... 💕</p>
-                <p class="message">I thought I'd ask you the old fashioned way...</p>
-                <p class="main-question">Will you be my girlfriend?</p>
-                <div class="action-area" id="actionArea">
-                    <button id="yesBtn" class="yes-btn">YES</button>
-                    <button id="noBtn" class="no-btn">NO</button>
+                
+                <div id="text-step-1">
+                    <p class="intro">Hey Krystle... 💕</p>
+                    <p class="message">I think it's really important to make a big deal out of asking the question...</p>
+                    <button id="nextBtn" class="action-link">Click to continue...</button>
+                </div>
+
+                <div id="text-step-2" class="hidden">
+                    <p class="main-question">So, Krystle,<br>will you be my girlfriend?</p>
+                    <div class="action-area" id="actionArea">
+                        <button id="yesBtn" class="yes-btn">YES</button>
+                        <button id="noBtn" class="no-btn">NO</button>
+                    </div>
                 </div>
             </div>
         </div>
