@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- UI ELEMENTS ---
     const envWrap = document.getElementById('envelope-wrap');
+    const flap = document.getElementById('flap');
     const paper = document.getElementById('main-paper');
     const area = document.getElementById('actionArea');
     const no = document.getElementById('noBtn');
@@ -11,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const acceptTermsBtn = document.getElementById('acceptTermsBtn');
     const dateSpan = document.getElementById('current-date');
     
-    // FORCE HIDE TERMS ON LOAD (Fixes Desktop Bug)
+    // FORCE HIDE TERMS ON LOAD
     if(termsModal) termsModal.classList.add('hidden');
     if(dateSpan) dateSpan.innerText = new Date().toLocaleDateString();
 
@@ -24,14 +25,16 @@ document.addEventListener('DOMContentLoaded', () => {
             envWrap.classList.add('fly-away');
             setTimeout(() => {
                 envWrap.classList.add('hidden');
+                // Hide flap to prevent ghosts
+                flap.style.display = 'none'; 
                 paper.classList.remove('hidden');
-                void paper.offsetWidth; // Force Reflow
+                void paper.offsetWidth; 
                 paper.classList.add('visible');
             }, 500);
         }, 600);
     });
 
-    // 2. NO BUTTON EVASION
+    // 2. NO BUTTON
     const moveNo = () => {
         no.style.left = Math.random() * (area.clientWidth - no.offsetWidth) + 'px';
         no.style.top = Math.random() * (area.clientHeight - no.offsetHeight) + 'px';
@@ -40,7 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
     no.addEventListener('mouseover', moveNo);
     no.addEventListener('touchstart', (e) => { e.preventDefault(); moveNo(); });
 
-    // 3. YES CLICKED -> SHOW TERMS
+    // 3. YES -> TERMS
     document.getElementById('yesBtn').addEventListener('click', () => {
         paper.style.transition = "transform 0.8s ease-in";
         paper.style.transform = "translateY(-150%) rotate(10deg)";
@@ -50,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 500);
     });
 
-    // 4. TERMS ACCEPT
+    // 4. ACCEPT TERMS
     if(termsCheck) {
         termsCheck.addEventListener('change', (e) => {
             if(e.target.checked) acceptTermsBtn.classList.remove('disabled');
@@ -64,7 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- INPUT HANDLING ---
+    // --- GLOBAL INPUT ---
     window.addEventListener('keydown', (e) => {
         if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
         keys[e.code] = true;
@@ -77,23 +80,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     window.addEventListener('keyup', (e) => keys[e.code] = false);
 
-    // D-Pad Touch Handling
+    // Touch D-Pad
     ['up','down','left','right'].forEach(dir => {
         const btn = document.getElementById('d-'+dir);
         if(!btn) return;
-
         const pacCode = {up:1, down:3, left:2, right:0}[dir];
         const keyMap = {up:'ArrowUp', down:'ArrowDown', left:'ArrowLeft', right:'ArrowRight'};
 
         const press = (e) => {
             e.preventDefault();
-            keys[keyMap[dir]] = true; // For Mario & Invaders
-            if(activeGame === 'pacman') pacNextDir = pacCode; // For Pacman
+            keys[keyMap[dir]] = true; 
+            if(activeGame === 'pacman') pacNextDir = pacCode; 
         };
-        const release = (e) => {
-            e.preventDefault();
-            keys[keyMap[dir]] = false;
-        };
+        const release = (e) => { e.preventDefault(); keys[keyMap[dir]] = false; };
 
         btn.addEventListener('touchstart', press);
         btn.addEventListener('touchend', release);
@@ -172,9 +171,10 @@ function initGame(type) {
         function marioLoop() {
             if(!alive) return;
             frame++;
+            
+            player.vx = 0;
             if(keys['ArrowRight'] || keys['KeyD']) player.vx = SPEED;
-            else if(keys['ArrowLeft'] || keys['KeyA']) player.vx = -SPEED;
-            else player.vx = 0;
+            if(keys['ArrowLeft'] || keys['KeyA']) player.vx = -SPEED;
 
             if(keys['Space'] && player.grounded) { player.vy = JUMP; player.grounded = false; }
             player.x += player.vx;
@@ -202,6 +202,7 @@ function initGame(type) {
                 }
             });
             if(player.y > 400) { alive = false; document.getElementById('game-over').classList.remove('hidden'); }
+            
             hearts.forEach((h, i) => { if(rectIntersect(player, h)) { hearts.splice(i, 1); document.getElementById('score').innerText = (score += 100); } });
             enemies.forEach(e => {
                 e.x += e.vx;
@@ -215,10 +216,19 @@ function initGame(type) {
                 if(b.type === 'question') { ctx.fillStyle = '#ffd500'; ctx.fillRect(b.x, b.y, b.w, b.h); ctx.fillStyle='#000'; ctx.fillText('?', b.x+12, b.y+28); }
                 if(b.type === 'box') { ctx.fillStyle = '#9e6800'; ctx.fillRect(b.x, b.y, b.w, b.h); }
             });
-            ctx.font = '20px Arial'; hearts.forEach(h => ctx.fillText('❤️', h.x, h.y + 20));
+            
+            // Draw Hearts (Pink)
+            ctx.fillStyle = '#ff69b4'; ctx.font = '20px Arial'; 
+            hearts.forEach(h => ctx.fillText('❤️', h.x, h.y + 20));
+            
+            // Draw Enemies (Red)
+            ctx.fillStyle = 'red';
             enemies.forEach(e => ctx.fillText('👾', e.x, e.y + 20));
+            
+            // Draw Player
             ctx.fillStyle = '#ff0000'; ctx.fillRect(player.x, player.y, player.w, player.h); 
             ctx.fillStyle = '#0000ff'; ctx.fillRect(player.x, player.y+20, player.w, 10);
+            
             gameLoopId = requestAnimationFrame(marioLoop);
         }
         marioLoop();
@@ -300,7 +310,7 @@ function initGame(type) {
             ctx.fillStyle='#000'; ctx.fillRect(0,0,canvas.width,canvas.height);
             if(keys['ArrowLeft']) player.x-=5; if(keys['ArrowRight']) player.x+=5; player.x=Math.max(0,Math.min(canvas.width-40,player.x));
             if(frame%4===0) { let hitEdge=false; invaders.forEach(inv=>{inv.x+=(2*invDir); if(inv.x>canvas.width-30 || inv.x<0) hitEdge=true;}); if(hitEdge) { invDir*=-1; invaders.forEach(inv=>inv.y+=10); } }
-            ctx.font='24px Arial'; invaders.forEach(inv=>{ctx.fillText(inv.t,inv.x,inv.y); if(inv.y>380) {alive=false; document.getElementById('game-over').classList.remove('hidden');}});
+            ctx.fillStyle = 'red'; ctx.font='24px Arial'; invaders.forEach(inv=>{ctx.fillText(inv.t,inv.x,inv.y); if(inv.y>380) {alive=false; document.getElementById('game-over').classList.remove('hidden');}});
             bullets.forEach((b,i)=>{b.y-=7; ctx.fillText('❤️',b.x,b.y); invaders.forEach((inv,ii)=>{if(b.x>inv.x && b.x<inv.x+30 && b.y<inv.y && b.y>inv.y-20) {invaders.splice(ii,1); bullets.splice(i,1); document.getElementById('score').innerText=(score+=100);}});});
             ctx.fillStyle='#00ff00'; ctx.fillRect(player.x,420,40,20); ctx.fillRect(player.x+15,410,10,10);
             if(invaders.length===0) { document.getElementById('game-over').querySelector('h2').innerText="YOU WIN!"; alive=false; document.getElementById('game-over').classList.remove('hidden'); }
@@ -316,7 +326,7 @@ function initGame(type) {
         function pbLoop() {
             if(!alive) return; frame++;
             ctx.fillStyle='#2d5a27'; ctx.fillRect(0,0,340,450); ctx.fillStyle='#555'; ctx.beginPath(); ctx.moveTo(100,0); ctx.lineTo(340,0); ctx.lineTo(340,450); ctx.lineTo(100,450); ctx.fill(); ctx.fillStyle='#777'; ctx.fillRect(80,0,20,450);
-            if(keys['ArrowLeft'] || keys['KeyA']) player.x-=5; if(keys['ArrowRight'] || keys['KeyD']) player.x+=5; player.x=Math.max(100,Math.min(300,player.x));
+            if(keys['ArrowLeft']) player.x-=5; if(keys['ArrowRight']) player.x+=5; player.x=Math.max(100,Math.min(300,player.x));
             if(frame%40===0) { let isHouse=Math.random()>0.4; world.push({x:Math.random()*50,y:-50,t:isHouse?'🏠':'🚗',hit:false,isCar:!isHouse}); }
             world.forEach((w,i)=>{w.y+=5; w.x+=1.5; if(w.isCar && w.y<0) w.x=200; ctx.font='40px Arial'; ctx.fillText(w.hit?'💖':w.t,w.x,w.y); if(w.isCar && Math.hypot(player.x-w.x,player.y-w.y)<30) {alive=false; document.getElementById('game-over').classList.remove('hidden');} if(w.y>500) world.splice(i,1);});
             hearts.forEach((h,i)=>{h.x+=h.vx; h.y+=h.vy; ctx.font='20px Arial'; ctx.fillText('❤️',h.x,h.y); world.forEach(w=>{if(w.t==='🏠'&&!w.hit&&Math.hypot(h.x-w.x,h.y-w.y)<40){w.hit=true;document.getElementById('score').innerText=(score+=50);}});});
