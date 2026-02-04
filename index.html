@@ -9,32 +9,29 @@
 </head>
 <body>
     <div class="container">
+        
         <div class="envelope-wrapper" id="envelope-wrap">
             <div class="envelope">
-                <div class="flap top-flap"></div>
-                <div class="flap side-flap left-flap"></div>
-                <div class="flap side-flap right-flap"></div>
-                <div class="flap bottom-flap"></div>
-                <div class="letter-preview"></div>
-                <div class="envelope-front"><p class="name-tag">Krystle</p></div>
+                <div class="front"></div>
+                <div class="card"><p class="name-tag">Krystle</p></div>
+                <div class="flap-top" id="flap"></div> 
+                <div class="flap-shadow"></div>
             </div>
         </div>
         
         <div class="paper hidden" id="main-paper">
             <div class="paper-content">
+                <p class="intro">Hey Krystle... 💕</p>
                 
-                <div id="text-step-1">
-                    <p class="intro">Hey Krystle... 💕</p>
-                    <p class="message">I think it's really important to make a big deal out of asking the question...</p>
-                    <button id="nextBtn" class="action-link">Click to continue...</button>
-                </div>
-
-                <div id="text-step-2" class="hidden">
-                    <p class="main-question">So, Krystle,<br>will you be my girlfriend?</p>
-                    <div class="action-area" id="actionArea">
-                        <button id="yesBtn" class="yes-btn">YES</button>
-                        <button id="noBtn" class="no-btn">NO</button>
-                    </div>
+                <p class="message">
+                    I think it's really important to make a big deal out of asking the question...
+                </p>
+                <br>
+                <p class="main-question">So, Krystle,<br>will you be my girlfriend?</p>
+                
+                <div class="action-area" id="actionArea">
+                    <button id="yesBtn" class="yes-btn">YES</button>
+                    <button id="noBtn" class="no-btn">NO</button>
                 </div>
             </div>
         </div>
