@@ -1,27 +1,30 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // UI ELEMENTS
     const envWrap = document.getElementById('envelope-wrap');
     const flap = document.getElementById('flap');
     const paper = document.getElementById('main-paper');
     const area = document.getElementById('actionArea');
     const no = document.getElementById('noBtn');
+    
+    // CONTRACT
     const termsModal = document.getElementById('terms-modal');
     const termsCheck = document.getElementById('terms-checkbox');
     const acceptTermsBtn = document.getElementById('acceptTermsBtn');
     const dateSpan = document.getElementById('current-date');
-    
-    // STARTUP
-    if(termsModal) termsModal.classList.add('hidden');
     if(dateSpan) dateSpan.innerText = new Date().toLocaleDateString();
 
-    // ENVELOPE
+    // 1. OPEN ENVELOPE (Manual Only)
     envWrap.addEventListener('click', () => {
         if(envWrap.classList.contains('open')) return;
         envWrap.classList.add('open');
+        
+        // Wait for flap animation
         setTimeout(() => {
             envWrap.classList.add('fly-away');
+            // Show paper after envelope flies
             setTimeout(() => {
                 envWrap.classList.add('hidden');
-                flap.style.display = 'none';
+                flap.style.display = 'none'; 
                 paper.classList.remove('hidden');
                 void paper.offsetWidth; 
                 paper.classList.add('visible');
@@ -29,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 600);
     });
 
-    // BUTTON EVASION
+    // 2. NO BUTTON
     const moveNo = () => {
         no.style.left = Math.random() * (area.clientWidth - no.offsetWidth) + 'px';
         no.style.top = Math.random() * (area.clientHeight - no.offsetHeight) + 'px';
@@ -38,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
     no.addEventListener('mouseover', moveNo);
     no.addEventListener('touchstart', (e) => { e.preventDefault(); moveNo(); });
 
-    // NAVIGATION
+    // 3. YES -> TERMS
     document.getElementById('yesBtn').addEventListener('click', () => {
         paper.style.transition = "transform 0.8s ease-in";
         paper.style.transform = "translateY(-150%) rotate(10deg)";
@@ -48,6 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 500);
     });
 
+    // 4. TERMS -> GAME MENU
     if(termsCheck) {
         termsCheck.addEventListener('change', (e) => {
             if(e.target.checked) acceptTermsBtn.classList.remove('disabled');
@@ -57,14 +61,17 @@ document.addEventListener('DOMContentLoaded', () => {
     if(acceptTermsBtn) {
         acceptTermsBtn.addEventListener('click', () => {
             termsModal.classList.add('hidden');
-            document.getElementById('celebration').style.display = 'block';
+            document.getElementById('celebration').classList.remove('hidden');
         });
     }
 
-    // --- INPUT ---
+    // --- INPUT HANDLING ---
+    // Track keys for desktop
     window.addEventListener('keydown', (e) => {
         if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
         keys[e.code] = true;
+        
+        // Pacman Input Buffer
         if(activeGame === 'pacman') {
             if(e.code === 'ArrowUp') pacNextDir = 1;
             if(e.code === 'ArrowDown') pacNextDir = 3;
@@ -74,29 +81,33 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     window.addEventListener('keyup', (e) => keys[e.code] = false);
 
-    // TOUCH INPUT
+    // Track touch for mobile (Mario & Pacman)
     ['up','down','left','right'].forEach(dir => {
         const btn = document.getElementById('d-'+dir);
         if(!btn) return;
         
         const pacCode = {up:1, down:3, left:2, right:0}[dir];
-        const handler = (state) => {
-            if(dir === 'left') touchState.left = state;
-            if(dir === 'right') touchState.right = state;
-            if(dir === 'up') touchState.up = state;
-            if(dir === 'down') touchState.down = state;
-            if(activeGame === 'pacman' && state) pacNextDir = pacCode;
+        const keyMap = {up:'ArrowUp', down:'ArrowDown', left:'ArrowLeft', right:'ArrowRight'};
+
+        const press = (e) => {
+            e.preventDefault();
+            keys[keyMap[dir]] = true; // Set virtual key
+            if(activeGame === 'pacman') pacNextDir = pacCode; 
+        };
+        const release = (e) => { 
+            e.preventDefault(); 
+            keys[keyMap[dir]] = false; 
         };
 
-        btn.addEventListener('touchstart', (e) => { e.preventDefault(); handler(true); });
-        btn.addEventListener('touchend', (e) => { e.preventDefault(); handler(false); });
-        btn.addEventListener('mousedown', (e) => { e.preventDefault(); handler(true); });
-        btn.addEventListener('mouseup', (e) => { e.preventDefault(); handler(false); });
+        btn.addEventListener('touchstart', press);
+        btn.addEventListener('touchend', release);
+        btn.addEventListener('mousedown', press);
+        btn.addEventListener('mouseup', release);
     });
 
     const jumpBtn = document.getElementById('jump-btn');
     if(jumpBtn) {
-        const h = (s) => { touchState.jump = s; keys['Space'] = s; };
+        const h = (s) => { keys['Space'] = s; };
         jumpBtn.addEventListener('touchstart', (e)=>{e.preventDefault(); h(true);});
         jumpBtn.addEventListener('touchend', (e)=>{e.preventDefault(); h(false);});
         jumpBtn.addEventListener('mousedown', (e)=>{e.preventDefault(); h(true);});
@@ -107,7 +118,6 @@ document.addEventListener('DOMContentLoaded', () => {
 let gameLoopId;
 let activeGame = null;
 let keys = {};
-let touchState = { left: false, right: false, up: false, down: false, jump: false };
 let pacNextDir = 0;
 
 function resetToMenu() {
@@ -141,63 +151,66 @@ function initGame(type) {
     let frame = 0;
     let alive = true;
 
-    // --- MARIO (TILE ENGINE) ---
+    // --- MARIO ---
     if (type === 'mario') {
         canvas.width = 340; canvas.height = 400;
         document.getElementById('dpad').classList.remove('hidden'); 
         document.getElementById('jump-btn').classList.remove('hidden');
         
-        let player = { x: 50, y: 300, w: 24, h: 24, vx: 0, vy: 0, grounded: false };
-        const GRAVITY = 0.5, JUMP = -10, SPEED = 3.5;
+        let player = { x: 50, y: 300, w: 20, h: 30, vx: 0, vy: 0, grounded: false };
+        const GRAVITY = 0.6, JUMP = -11, SPEED = 4;
+        let items = []; // blocks + enemies + hearts
         
-        // Define fixed level map (1=Ground, 2=Question, 3=Brick, 9=Heart)
-        let map = [];
-        let enemies = [];
-        // Init flat ground
-        for(let c=0; c<200; c++) map.push({x:c*30, y:360, t:1}); 
-        // Platforms
-        for(let c=6; c<200; c+=Math.floor(Math.random()*5)+4) {
-            let h = 250 + Math.random()*50;
-            map.push({x:c*30, y:h, t:3}); // Brick
-            if(Math.random()>0.5) map.push({x:(c+1)*30, y:h, t:2}); // Question
-            else enemies.push({x:(c+2)*30, y:330, w:20, h:20, vx:-1});
+        // Generate World (Simple Boxes)
+        for(let i=0; i<200; i+=40) items.push({x: i, y: 360, w: 40, h: 40, t: 'ground'}); // Start Floor
+        for(let i=300; i<2000; i+=40) {
+            // Random Floor
+            if(Math.random() > 0.2) items.push({x: i, y: 360, w: 40, h: 40, t: 'ground'});
+            
+            // Random Platforms
+            if(Math.random() > 0.7) {
+                let h = 250 - Math.random()*50;
+                items.push({x: i, y: h, w: 40, h: 40, t: 'brick'});
+                if(Math.random()>0.5) items.push({x: i, y: h-50, w: 20, h: 20, t: 'heart'});
+            }
+            
+            // Random Enemies
+            if(Math.random() > 0.9) items.push({x: i, y: 330, w: 20, h: 20, t: 'enemy', vx: -1});
         }
-        let hearts = [];
 
-        function checkRect(r1, r2) {
-            return !(r2.x > r1.x + r1.w || r2.x + 30 < r1.x || r2.y > r1.y + r1.h || r2.y + 30 < r1.y);
+        // Rect Collision Function
+        function checkCol(p, b) {
+            return (p.x < b.x + b.w && p.x + p.w > b.x && p.y < b.y + b.h && p.y + p.h > b.y);
         }
 
         function marioLoop() {
             if(!alive) return;
             frame++;
             
-            // 1. Controls (Keys OR Touch)
+            // 1. Controls
             player.vx = 0;
-            if(keys['ArrowRight'] || keys['KeyD'] || touchState.right) player.vx = SPEED;
-            if(keys['ArrowLeft'] || keys['KeyA'] || touchState.left) player.vx = -SPEED;
+            if(keys['ArrowRight'] || keys['KeyD']) player.vx = SPEED;
+            if(keys['ArrowLeft'] || keys['KeyA']) player.vx = -SPEED;
             
-            if((keys['Space'] || touchState.jump) && player.grounded) {
-                player.vy = JUMP; player.grounded = false;
+            if(keys['Space'] && player.grounded) { 
+                player.vy = JUMP; player.grounded = false; 
             }
 
             // 2. Physics X
             player.x += player.vx;
-            // Scroll World if needed
+            // Scroll World if player moves past middle
             if(player.x > 150) {
                 let shift = player.x - 150;
                 player.x = 150;
-                map.forEach(b => b.x -= shift);
-                hearts.forEach(h => h.x -= shift);
-                enemies.forEach(e => e.x -= shift);
-                if(map[map.length-1].x < 340) map.push({x:map[map.length-1].x+30, y:360, t:1}); // Infinite floor
+                items.forEach(i => i.x -= shift);
             }
+            player.x = Math.max(0, player.x);
 
-            // Collision X
-            map.forEach(b => {
-                if(checkRect(player, b)) {
+            // Collision X (Solid objects only)
+            items.forEach(b => {
+                if((b.t === 'ground' || b.t === 'brick') && checkCol(player, b)) {
                     if(player.vx > 0) player.x = b.x - player.w;
-                    else if(player.vx < 0) player.x = b.x + 30;
+                    else if(player.vx < 0) player.x = b.x + b.w;
                 }
             });
 
@@ -207,54 +220,44 @@ function initGame(type) {
             player.grounded = false;
 
             // Collision Y
-            map.forEach(b => {
-                if(checkRect(player, b)) {
-                    if(player.vy > 0 && player.y + player.h < b.y + 30) {
+            items.forEach(b => {
+                if((b.t === 'ground' || b.t === 'brick') && checkCol(player, b)) {
+                    if(player.vy > 0 && player.y < b.y) {
                         player.y = b.y - player.h; player.vy = 0; player.grounded = true;
                     } else if(player.vy < 0 && player.y > b.y) {
-                        player.y = b.y + 30; player.vy = 0;
-                        if(b.t === 2) { // Hit Question Block
-                            b.t = 3; // Turn to Brick
-                            hearts.push({x: b.x+5, y: b.y-30, w:20, h:20});
-                        }
+                        player.y = b.y + b.h; player.vy = 0;
                     }
                 }
             });
 
+            // 4. Game Logic (Hearts/Enemies)
             if(player.y > 400) { alive = false; document.getElementById('game-over').classList.remove('hidden'); }
-
-            // 4. Entities
-            hearts.forEach((h, i) => {
-                // Heart Collision (Simple AABB)
-                if(player.x < h.x + h.w && player.x + player.w > h.x && player.y < h.y + h.h && player.y + player.h > h.y) {
-                    hearts.splice(i, 1); document.getElementById('score').innerText = (score += 100);
+            
+            items.forEach((b, i) => {
+                if(b.t === 'heart' && checkCol(player, b)) {
+                    items.splice(i, 1);
+                    document.getElementById('score').innerText = (score += 100);
                 }
-            });
-            enemies.forEach(e => {
-                e.x += e.vx;
-                if(player.x < e.x + e.w && player.x + player.w > e.x && player.y < e.y + e.h && player.y + player.h > e.y) {
-                    alive = false; document.getElementById('game-over').classList.remove('hidden');
+                if(b.t === 'enemy') {
+                    b.x += b.vx;
+                    if(checkCol(player, b)) {
+                        alive = false; document.getElementById('game-over').classList.remove('hidden');
+                    }
                 }
             });
 
             // 5. Draw
             ctx.fillStyle = '#5c94fc'; ctx.fillRect(0,0,canvas.width,canvas.height);
-            
-            map.forEach(b => {
-                if(b.x > -40 && b.x < 380) { // Only draw visible
-                    if(b.t === 1) { ctx.fillStyle='#e52521'; ctx.fillRect(b.x, b.y, 30, 30); ctx.strokeRect(b.x,b.y,30,30); }
-                    if(b.t === 3) { ctx.fillStyle='#b84e00'; ctx.fillRect(b.x, b.y, 30, 30); ctx.strokeRect(b.x,b.y,30,30); }
-                    if(b.t === 2) { ctx.fillStyle='#ffd500'; ctx.fillRect(b.x, b.y, 30, 30); ctx.fillStyle='#000'; ctx.fillText('?', b.x+8, b.y+22); }
+            items.forEach(b => {
+                if(b.x > -50 && b.x < 400) {
+                    if(b.t==='ground') { ctx.fillStyle='#e52521'; ctx.fillRect(b.x,b.y,b.w,b.h); ctx.strokeRect(b.x,b.y,b.w,b.h); }
+                    if(b.t==='brick') { ctx.fillStyle='#b84e00'; ctx.fillRect(b.x,b.y,b.w,b.h); ctx.strokeRect(b.x,b.y,b.w,b.h); }
+                    if(b.t==='heart') { ctx.font='20px Arial'; ctx.fillText('❤️', b.x, b.y+20); }
+                    if(b.t==='enemy') { ctx.font='20px Arial'; ctx.fillText('👾', b.x, b.y+20); }
                 }
             });
-
-            ctx.font = '20px Arial';
-            hearts.forEach(h => ctx.fillText('❤️', h.x, h.y+20));
-            enemies.forEach(e => ctx.fillText('👾', e.x, e.y+20));
-
-            ctx.fillStyle = 'red'; ctx.fillRect(player.x, player.y, player.w, player.h);
-            ctx.fillStyle = 'blue'; ctx.fillRect(player.x, player.y+16, player.w, 8);
-
+            ctx.fillStyle = '#ff0000'; ctx.fillRect(player.x, player.y, player.w, player.h);
+            
             gameLoopId = requestAnimationFrame(marioLoop);
         }
         marioLoop();
@@ -317,6 +320,7 @@ function initGame(type) {
             }
             if(powerTimer===0) ghosts.forEach(g=>g.vulnerable=false);
             
+            // Draw Player with Rotation
             ctx.save();
             ctx.translate(player.x*TILE+8, player.y*TILE+8);
             if(player.dir === 1) ctx.rotate(-Math.PI/2); 
@@ -330,7 +334,7 @@ function initGame(type) {
         }
         pacLoop();
 
-    // --- INVADERS ---
+    // --- INVADERS & PAPERBOY (Retained) ---
     } else if (type === 'invaders') {
         canvas.width = 340; canvas.height = 450;
         let player = { x: 150, w: 40, h: 20 }, bullets = [], invaders = [], invDir = 1;
@@ -345,7 +349,6 @@ function initGame(type) {
             if(keys['ArrowLeft'] || keys['KeyA'] || touchState.left) player.x-=5; 
             if(keys['ArrowRight'] || keys['KeyD'] || touchState.right) player.x+=5; 
             player.x=Math.max(0,Math.min(canvas.width-40,player.x));
-
             if(frame%4===0) { let hitEdge=false; invaders.forEach(inv=>{inv.x+=(2*invDir); if(inv.x>canvas.width-30 || inv.x<0) hitEdge=true;}); if(hitEdge) { invDir*=-1; invaders.forEach(inv=>inv.y+=10); } }
             ctx.fillStyle='red'; ctx.font='24px Arial'; invaders.forEach(inv=>{ctx.fillText(inv.t,inv.x,inv.y); if(inv.y>380) {alive=false; document.getElementById('game-over').classList.remove('hidden');}});
             bullets.forEach((b,i)=>{b.y-=7; ctx.fillText('❤️',b.x,b.y); invaders.forEach((inv,ii)=>{if(b.x>inv.x && b.x<inv.x+30 && b.y<inv.y && b.y>inv.y-20) {invaders.splice(ii,1); bullets.splice(i,1); document.getElementById('score').innerText=(score+=100);}});});
@@ -354,8 +357,6 @@ function initGame(type) {
             gameLoopId=requestAnimationFrame(invLoop);
         }
         invLoop();
-
-    // --- PAPERBOY ---
     } else if (type === 'paperboy') {
         canvas.width = 340; canvas.height = 450;
         let player = { x: 170, y: 350 }, world = [], hearts = [];
