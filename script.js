@@ -1,32 +1,31 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // --- UI ELEMENTS ---
+    // UI ELEMENTS
     const envWrap = document.getElementById('envelope-wrap');
     const flap = document.getElementById('flap');
     const paper = document.getElementById('main-paper');
     const area = document.getElementById('actionArea');
     const no = document.getElementById('noBtn');
     
-    // Terms & Contract
+    // CONTRACT & TERMS
     const termsModal = document.getElementById('terms-modal');
     const termsCheck = document.getElementById('terms-checkbox');
     const acceptTermsBtn = document.getElementById('acceptTermsBtn');
     const dateSpan = document.getElementById('current-date');
     
-    // FORCE HIDE TERMS ON LOAD
+    // FORCE RESET ON LOAD
     if(termsModal) termsModal.classList.add('hidden');
+    if(document.getElementById('celebration')) document.getElementById('celebration').style.display = 'none';
     if(dateSpan) dateSpan.innerText = new Date().toLocaleDateString();
 
     // 1. ENVELOPE OPENING
     envWrap.addEventListener('click', () => {
         if(envWrap.classList.contains('open')) return;
         envWrap.classList.add('open');
-        
         setTimeout(() => {
             envWrap.classList.add('fly-away');
             setTimeout(() => {
                 envWrap.classList.add('hidden');
-                // Hide flap to prevent ghosts
-                flap.style.display = 'none'; 
+                flap.style.display = 'none'; // Ensure flap is gone
                 paper.classList.remove('hidden');
                 void paper.offsetWidth; 
                 paper.classList.add('visible');
@@ -43,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
     no.addEventListener('mouseover', moveNo);
     no.addEventListener('touchstart', (e) => { e.preventDefault(); moveNo(); });
 
-    // 3. YES -> TERMS
+    // 3. YES -> SHOW TERMS
     document.getElementById('yesBtn').addEventListener('click', () => {
         paper.style.transition = "transform 0.8s ease-in";
         paper.style.transform = "translateY(-150%) rotate(10deg)";
@@ -63,11 +62,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if(acceptTermsBtn) {
         acceptTermsBtn.addEventListener('click', () => {
             termsModal.classList.add('hidden');
-            document.getElementById('celebration').style.display = 'block';
+            document.getElementById('celebration').style.display = 'flex'; // Force Flex for layout
         });
     }
 
-    // --- GLOBAL INPUT ---
+    // --- INPUT HANDLING ---
     window.addEventListener('keydown', (e) => {
         if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
         keys[e.code] = true;
@@ -80,19 +79,38 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     window.addEventListener('keyup', (e) => keys[e.code] = false);
 
-    // Touch D-Pad
+    // ROBUST TOUCH HANDLING
     ['up','down','left','right'].forEach(dir => {
         const btn = document.getElementById('d-'+dir);
         if(!btn) return;
+
         const pacCode = {up:1, down:3, left:2, right:0}[dir];
         const keyMap = {up:'ArrowUp', down:'ArrowDown', left:'ArrowLeft', right:'ArrowRight'};
 
+        // Universal Press Handler
         const press = (e) => {
             e.preventDefault();
-            keys[keyMap[dir]] = true; 
+            keys[keyMap[dir]] = true; // Key flag for games checking keys
+            
+            // Explicit Mobile Flags for Mario
+            if(dir === 'left') touchState.left = true;
+            if(dir === 'right') touchState.right = true;
+            if(dir === 'up') touchState.up = true;
+            if(dir === 'down') touchState.down = true;
+
             if(activeGame === 'pacman') pacNextDir = pacCode; 
         };
-        const release = (e) => { e.preventDefault(); keys[keyMap[dir]] = false; };
+
+        // Universal Release Handler
+        const release = (e) => {
+            e.preventDefault();
+            keys[keyMap[dir]] = false;
+            
+            if(dir === 'left') touchState.left = false;
+            if(dir === 'right') touchState.right = false;
+            if(dir === 'up') touchState.up = false;
+            if(dir === 'down') touchState.down = false;
+        };
 
         btn.addEventListener('touchstart', press);
         btn.addEventListener('touchend', release);
@@ -100,11 +118,10 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.addEventListener('mouseup', release);
     });
 
-    // Jump Button
     const jumpBtn = document.getElementById('jump-btn');
     if(jumpBtn) {
-        const jumpPress = (e) => { e.preventDefault(); keys['Space'] = true; };
-        const jumpRelease = (e) => { e.preventDefault(); keys['Space'] = false; };
+        const jumpPress = (e) => { e.preventDefault(); keys['Space'] = true; touchState.jump = true; };
+        const jumpRelease = (e) => { e.preventDefault(); keys['Space'] = false; touchState.jump = false; };
         jumpBtn.addEventListener('touchstart', jumpPress);
         jumpBtn.addEventListener('touchend', jumpRelease);
         jumpBtn.addEventListener('mousedown', jumpPress);
@@ -116,6 +133,8 @@ let gameLoopId;
 let activeGame = null;
 let keys = {};
 let pacNextDir = 0;
+// Dedicated Mobile State
+let touchState = { left: false, right: false, up: false, down: false, jump: false };
 
 function resetToMenu() {
     if(gameLoopId) cancelAnimationFrame(gameLoopId);
@@ -173,10 +192,14 @@ function initGame(type) {
             frame++;
             
             player.vx = 0;
-            if(keys['ArrowRight'] || keys['KeyD']) player.vx = SPEED;
-            if(keys['ArrowLeft'] || keys['KeyA']) player.vx = -SPEED;
+            // Check BOTH keys AND touch state
+            if(keys['ArrowRight'] || keys['KeyD'] || touchState.right) player.vx = SPEED;
+            if(keys['ArrowLeft'] || keys['KeyA'] || touchState.left) player.vx = -SPEED;
 
-            if(keys['Space'] && player.grounded) { player.vy = JUMP; player.grounded = false; }
+            if((keys['Space'] || touchState.jump) && player.grounded) { 
+                player.vy = JUMP; player.grounded = false; 
+            }
+            
             player.x += player.vx;
             player.x = Math.max(0, player.x);
 
@@ -217,18 +240,12 @@ function initGame(type) {
                 if(b.type === 'box') { ctx.fillStyle = '#9e6800'; ctx.fillRect(b.x, b.y, b.w, b.h); }
             });
             
-            // Draw Hearts (Pink)
             ctx.fillStyle = '#ff69b4'; ctx.font = '20px Arial'; 
             hearts.forEach(h => ctx.fillText('❤️', h.x, h.y + 20));
-            
-            // Draw Enemies (Red)
             ctx.fillStyle = 'red';
             enemies.forEach(e => ctx.fillText('👾', e.x, e.y + 20));
-            
-            // Draw Player
             ctx.fillStyle = '#ff0000'; ctx.fillRect(player.x, player.y, player.w, player.h); 
             ctx.fillStyle = '#0000ff'; ctx.fillRect(player.x, player.y+20, player.w, 10);
-            
             gameLoopId = requestAnimationFrame(marioLoop);
         }
         marioLoop();
@@ -259,7 +276,7 @@ function initGame(type) {
             ctx.fillStyle = 'black'; ctx.fillRect(0,0,canvas.width,canvas.height);
             for(let y=0; y<map.length; y++) for(let x=0; x<map[y].length; x++) {
                 if(map[y][x]===1) { ctx.fillStyle='#1919A6'; ctx.fillRect(x*TILE, y*TILE, TILE, TILE); }
-                else if(map[y][x]===0) { ctx.fillStyle='#ffb8ae'; ctx.fillRect(x*TILE+6, y*TILE+6, 4, 4); }
+                else if(map[y][x]===0) { ctx.fillStyle='#ffb8ae'; ctx.beginPath(); ctx.arc(x*TILE+8,y*TILE+8, 4, 0, Math.PI*2); ctx.fill(); }
                 else if(map[y][x]===8) { ctx.fillStyle=(frame%20<10)?'#ffb8ae':'#000'; ctx.beginPath(); ctx.arc(x*TILE+8,y*TILE+8,6,0,Math.PI*2); ctx.fill(); }
             }
             let moveRate = Math.max(5, 12 - Math.floor(score/200)); 
@@ -290,7 +307,16 @@ function initGame(type) {
                 });
             }
             if(powerTimer===0) ghosts.forEach(g=>g.vulnerable=false);
-            ctx.fillStyle='yellow'; ctx.beginPath(); ctx.arc(player.x*TILE+8, player.y*TILE+8, 7, 0.2*Math.PI, 1.8*Math.PI); ctx.lineTo(player.x*TILE+8, player.y*TILE+8); ctx.fill();
+            
+            // Draw Player with Rotation
+            ctx.save();
+            ctx.translate(player.x*TILE+8, player.y*TILE+8);
+            if(player.dir === 1) ctx.rotate(-Math.PI/2); 
+            if(player.dir === 2) ctx.rotate(Math.PI);    
+            if(player.dir === 3) ctx.rotate(Math.PI/2); 
+            ctx.fillStyle='yellow'; ctx.beginPath(); ctx.arc(0, 0, 7, 0.2*Math.PI, 1.8*Math.PI); ctx.lineTo(0,0); ctx.fill();
+            ctx.restore();
+
             ghosts.forEach(g => { ctx.fillStyle=g.vulnerable?(powerTimer<100 && frame%10<5?'white':'blue'):g.color; ctx.beginPath(); ctx.arc(g.x*TILE+8,g.y*TILE+8,7,0,Math.PI*2); ctx.fill(); ctx.fillStyle='white'; ctx.fillRect(g.x*TILE+4,g.y*TILE+4,3,3); ctx.fillRect(g.x*TILE+9,g.y*TILE+4,3,3); });
             gameLoopId = requestAnimationFrame(pacLoop);
         }
@@ -308,9 +334,12 @@ function initGame(type) {
         function invLoop() {
             if(!alive) return; frame++;
             ctx.fillStyle='#000'; ctx.fillRect(0,0,canvas.width,canvas.height);
-            if(keys['ArrowLeft']) player.x-=5; if(keys['ArrowRight']) player.x+=5; player.x=Math.max(0,Math.min(canvas.width-40,player.x));
+            if(keys['ArrowLeft'] || keys['KeyA'] || touchState.left) player.x-=5; 
+            if(keys['ArrowRight'] || keys['KeyD'] || touchState.right) player.x+=5; 
+            player.x=Math.max(0,Math.min(canvas.width-40,player.x));
+
             if(frame%4===0) { let hitEdge=false; invaders.forEach(inv=>{inv.x+=(2*invDir); if(inv.x>canvas.width-30 || inv.x<0) hitEdge=true;}); if(hitEdge) { invDir*=-1; invaders.forEach(inv=>inv.y+=10); } }
-            ctx.fillStyle = 'red'; ctx.font='24px Arial'; invaders.forEach(inv=>{ctx.fillText(inv.t,inv.x,inv.y); if(inv.y>380) {alive=false; document.getElementById('game-over').classList.remove('hidden');}});
+            ctx.fillStyle='red'; ctx.font='24px Arial'; invaders.forEach(inv=>{ctx.fillText(inv.t,inv.x,inv.y); if(inv.y>380) {alive=false; document.getElementById('game-over').classList.remove('hidden');}});
             bullets.forEach((b,i)=>{b.y-=7; ctx.fillText('❤️',b.x,b.y); invaders.forEach((inv,ii)=>{if(b.x>inv.x && b.x<inv.x+30 && b.y<inv.y && b.y>inv.y-20) {invaders.splice(ii,1); bullets.splice(i,1); document.getElementById('score').innerText=(score+=100);}});});
             ctx.fillStyle='#00ff00'; ctx.fillRect(player.x,420,40,20); ctx.fillRect(player.x+15,410,10,10);
             if(invaders.length===0) { document.getElementById('game-over').querySelector('h2').innerText="YOU WIN!"; alive=false; document.getElementById('game-over').classList.remove('hidden'); }
@@ -326,7 +355,9 @@ function initGame(type) {
         function pbLoop() {
             if(!alive) return; frame++;
             ctx.fillStyle='#2d5a27'; ctx.fillRect(0,0,340,450); ctx.fillStyle='#555'; ctx.beginPath(); ctx.moveTo(100,0); ctx.lineTo(340,0); ctx.lineTo(340,450); ctx.lineTo(100,450); ctx.fill(); ctx.fillStyle='#777'; ctx.fillRect(80,0,20,450);
-            if(keys['ArrowLeft']) player.x-=5; if(keys['ArrowRight']) player.x+=5; player.x=Math.max(100,Math.min(300,player.x));
+            if(keys['ArrowLeft'] || keys['KeyA'] || touchState.left) player.x-=5; 
+            if(keys['ArrowRight'] || keys['KeyD'] || touchState.right) player.x+=5; 
+            player.x=Math.max(100,Math.min(300,player.x));
             if(frame%40===0) { let isHouse=Math.random()>0.4; world.push({x:Math.random()*50,y:-50,t:isHouse?'🏠':'🚗',hit:false,isCar:!isHouse}); }
             world.forEach((w,i)=>{w.y+=5; w.x+=1.5; if(w.isCar && w.y<0) w.x=200; ctx.font='40px Arial'; ctx.fillText(w.hit?'💖':w.t,w.x,w.y); if(w.isCar && Math.hypot(player.x-w.x,player.y-w.y)<30) {alive=false; document.getElementById('game-over').classList.remove('hidden');} if(w.y>500) world.splice(i,1);});
             hearts.forEach((h,i)=>{h.x+=h.vx; h.y+=h.vy; ctx.font='20px Arial'; ctx.fillText('❤️',h.x,h.y); world.forEach(w=>{if(w.t==='🏠'&&!w.hit&&Math.hypot(h.x-w.x,h.y-w.y)<40){w.hit=true;document.getElementById('score').innerText=(score+=50);}});});
