@@ -10,24 +10,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const termsCheck = document.getElementById('terms-checkbox');
     const acceptTermsBtn = document.getElementById('acceptTermsBtn');
     const dateSpan = document.getElementById('current-date');
+    
+    // FORCE HIDE TERMS ON LOAD (Fixes Desktop Bug)
+    if(termsModal) termsModal.classList.add('hidden');
     if(dateSpan) dateSpan.innerText = new Date().toLocaleDateString();
 
-    // 1. ENVELOPE OPENING (One Click -> Reveal)
+    // 1. ENVELOPE OPENING
     envWrap.addEventListener('click', () => {
         if(envWrap.classList.contains('open')) return;
-        
-        // 1. Flip Top
         envWrap.classList.add('open');
         
-        // 2. Fly away and Show Paper
         setTimeout(() => {
             envWrap.classList.add('fly-away');
             setTimeout(() => {
                 envWrap.classList.add('hidden');
                 paper.classList.remove('hidden');
-                // Force reflow
-                void paper.offsetWidth;
-                paper.classList.add('visible'); // Triggers scale up
+                void paper.offsetWidth; // Force Reflow
+                paper.classList.add('visible');
             }, 500);
         }, 600);
     });
@@ -47,8 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
         paper.style.transform = "translateY(-150%) rotate(10deg)";
         setTimeout(() => {
             paper.classList.add('hidden');
-            if(termsModal) termsModal.classList.remove('hidden'); 
-            else document.getElementById('celebration').style.display = 'block';
+            termsModal.classList.remove('hidden'); 
         }, 500);
     });
 
@@ -66,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- GLOBAL INPUT HANDLING ---
+    // --- INPUT HANDLING ---
     window.addEventListener('keydown', (e) => {
         if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
         keys[e.code] = true;
@@ -79,20 +77,18 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     window.addEventListener('keyup', (e) => keys[e.code] = false);
 
-    // Touch Handling (D-Pad)
+    // D-Pad Touch Handling
     ['up','down','left','right'].forEach(dir => {
         const btn = document.getElementById('d-'+dir);
         if(!btn) return;
 
-        // Pacman Direction Codes
         const pacCode = {up:1, down:3, left:2, right:0}[dir];
-        // Mario Keys
         const keyMap = {up:'ArrowUp', down:'ArrowDown', left:'ArrowLeft', right:'ArrowRight'};
 
         const press = (e) => {
             e.preventDefault();
-            keys[keyMap[dir]] = true; // Set key for Mario
-            if(activeGame === 'pacman') pacNextDir = pacCode; // Set dir for Pacman
+            keys[keyMap[dir]] = true; // For Mario & Invaders
+            if(activeGame === 'pacman') pacNextDir = pacCode; // For Pacman
         };
         const release = (e) => {
             e.preventDefault();
@@ -117,7 +113,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// --- GAME STATE ---
 let gameLoopId;
 let activeGame = null;
 let keys = {};
@@ -154,17 +149,15 @@ function initGame(type) {
     let frame = 0;
     let alive = true;
 
-    // --- SUPER PHILLIO BROS ---
+    // --- MARIO ---
     if (type === 'mario') {
         canvas.width = 340; canvas.height = 400;
         document.getElementById('dpad').classList.remove('hidden'); 
         document.getElementById('jump-btn').classList.remove('hidden');
         
         let player = { x: 50, y: 300, w: 20, h: 30, vx: 0, vy: 0, grounded: false };
-        const GRAVITY = 0.6;
-        const JUMP = -11;
-        const SPEED = 4;
-        let blocks = []; let hearts = []; let enemies = [];
+        const GRAVITY = 0.6, JUMP = -11, SPEED = 4;
+        let blocks = [], hearts = [], enemies = [];
         
         for(let i=0; i<100; i++) blocks.push({x: i*40, y: 360, w: 40, h: 40, type: 'ground'});
         for(let i=5; i<100; i+= Math.floor(Math.random()*4)+3) {
@@ -185,7 +178,7 @@ function initGame(type) {
 
             if(keys['Space'] && player.grounded) { player.vy = JUMP; player.grounded = false; }
             player.x += player.vx;
-            player.x = Math.max(0, player.x); // Wall check
+            player.x = Math.max(0, player.x);
 
             if(player.x > 150) {
                 let shift = player.x - 150;
@@ -197,12 +190,7 @@ function initGame(type) {
                     blocks.push({x: blocks[blocks.length-1].x+40, y: 360, w: 40, h: 40, type: 'ground'});
                 }
             }
-            blocks.forEach(b => {
-                if(rectIntersect(player, b)) {
-                    if(player.vx > 0) player.x = b.x - player.w;
-                    else if(player.vx < 0) player.x = b.x + b.w;
-                }
-            });
+            blocks.forEach(b => { if(rectIntersect(player, b)) { if(player.vx > 0) player.x = b.x - player.w; else if(player.vx < 0) player.x = b.x + b.w; } });
             player.vy += GRAVITY; player.y += player.vy; player.grounded = false;
             blocks.forEach(b => {
                 if(rectIntersect(player, b)) {
@@ -235,7 +223,7 @@ function initGame(type) {
         }
         marioLoop();
 
-    // --- OTHER GAMES (Retained) ---
+    // --- PAC-MAN ---
     } else if (type === 'pacman') {
         canvas.width = 336; canvas.height = 380;
         document.getElementById('dpad').classList.remove('hidden');
@@ -298,6 +286,7 @@ function initGame(type) {
         }
         pacLoop();
 
+    // --- INVADERS ---
     } else if (type === 'invaders') {
         canvas.width = 340; canvas.height = 450;
         let player = { x: 150, w: 40, h: 20 }, bullets = [], invaders = [], invDir = 1;
@@ -318,14 +307,16 @@ function initGame(type) {
             gameLoopId=requestAnimationFrame(invLoop);
         }
         invLoop();
+
+    // --- PAPERBOY ---
     } else if (type === 'paperboy') {
         canvas.width = 340; canvas.height = 450;
         let player = { x: 170, y: 350 }, world = [], hearts = [];
-        canvas.addEventListener('touchmove', e=>{e.preventDefault();player.x=e.touches[0].clientX-canvas.getBoundingClientRect().left-20;}, {passive:false}); canvas.addEventListener('touchstart', e=>{e.preventDefault();hearts.push({x:player.x+20,y:player.y,vx:-5,vy:-5});}); window.addEventListener('keydown', e=>{if(e.code==='Space'&&alive)hearts.push({x:player.x+20,y:player.y,vx:-5,vy:-5});});
+        canvas.addEventListener('touchmove', e=>{e.preventDefault();player.x=e.touches[0].clientX-canvas.getBoundingClientRect().left-20;}, {passive:false}); canvas.addEventListener('touchstart', e=>{e.preventDefault();hearts.push({x:player.x+20,y:player.y,vx:-5,vy:-5});}); window.addEventListener('keydown', e=>{if(e.code==='Space'&&alive&&type==='paperboy')hearts.push({x:player.x+20,y:player.y,vx:-5,vy:-5});});
         function pbLoop() {
             if(!alive) return; frame++;
             ctx.fillStyle='#2d5a27'; ctx.fillRect(0,0,340,450); ctx.fillStyle='#555'; ctx.beginPath(); ctx.moveTo(100,0); ctx.lineTo(340,0); ctx.lineTo(340,450); ctx.lineTo(100,450); ctx.fill(); ctx.fillStyle='#777'; ctx.fillRect(80,0,20,450);
-            if(keys['ArrowLeft']) player.x-=5; if(keys['ArrowRight']) player.x+=5; player.x=Math.max(100,Math.min(300,player.x));
+            if(keys['ArrowLeft'] || keys['KeyA']) player.x-=5; if(keys['ArrowRight'] || keys['KeyD']) player.x+=5; player.x=Math.max(100,Math.min(300,player.x));
             if(frame%40===0) { let isHouse=Math.random()>0.4; world.push({x:Math.random()*50,y:-50,t:isHouse?'🏠':'🚗',hit:false,isCar:!isHouse}); }
             world.forEach((w,i)=>{w.y+=5; w.x+=1.5; if(w.isCar && w.y<0) w.x=200; ctx.font='40px Arial'; ctx.fillText(w.hit?'💖':w.t,w.x,w.y); if(w.isCar && Math.hypot(player.x-w.x,player.y-w.y)<30) {alive=false; document.getElementById('game-over').classList.remove('hidden');} if(w.y>500) world.splice(i,1);});
             hearts.forEach((h,i)=>{h.x+=h.vx; h.y+=h.vy; ctx.font='20px Arial'; ctx.fillText('❤️',h.x,h.y); world.forEach(w=>{if(w.t==='🏠'&&!w.hit&&Math.hypot(h.x-w.x,h.y-w.y)<40){w.hit=true;document.getElementById('score').innerText=(score+=50);}});});
