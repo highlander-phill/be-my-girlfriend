@@ -13,9 +13,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const dateSpan = document.getElementById('current-date');
     const celebration = document.getElementById('celebration');
     
-    // STARTUP STATE - FORCE EVERYTHING OFF
+    // STARTUP STATE
     termsModal.classList.add('hidden');
-    celebration.style.display = 'none'; // Force hide
+    celebration.classList.add('hidden');
     if(dateSpan) dateSpan.innerText = new Date().toLocaleDateString();
 
     // 1. OPEN ENVELOPE
@@ -63,7 +63,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if(acceptTermsBtn) {
         acceptTermsBtn.addEventListener('click', () => {
             termsModal.classList.add('hidden');
-            // FORCE DISPLAY FLEX
+            // Remove hidden class from celebration
+            celebration.classList.remove('hidden');
+            // Force display style just in case CSS fails
             celebration.style.display = 'flex';
         });
     }
@@ -91,12 +93,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const press = (e) => {
             e.preventDefault();
             keys[keyMap[dir]] = true; 
-            // Update touch state for Mario
             if(dir === 'left') touchState.left = true;
             if(dir === 'right') touchState.right = true;
             if(dir === 'up') touchState.up = true;
             if(dir === 'down') touchState.down = true;
-            // Update for Pacman
             if(activeGame === 'pacman') pacNextDir = pacCode; 
         };
         const release = (e) => { 
@@ -202,7 +202,6 @@ function initGame(type) {
 
             // 2. Physics X
             player.x += player.vx;
-            // Scroll World
             if(player.x > 150) {
                 let shift = player.x - 150;
                 player.x = 150;
@@ -337,7 +336,7 @@ function initGame(type) {
         }
         pacLoop();
 
-    // --- INVADERS ---
+    // --- INVADERS & PAPERBOY (Retained) ---
     } else if (type === 'invaders') {
         canvas.width = 340; canvas.height = 450;
         let player = { x: 150, w: 40, h: 20 }, bullets = [], invaders = [], invDir = 1;
@@ -361,8 +360,6 @@ function initGame(type) {
             gameLoopId=requestAnimationFrame(invLoop);
         }
         invLoop();
-
-    // --- PAPERBOY ---
     } else if (type === 'paperboy') {
         canvas.width = 340; canvas.height = 450;
         let player = { x: 170, y: 350 }, world = [], hearts = [];
