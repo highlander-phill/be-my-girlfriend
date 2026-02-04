@@ -11,20 +11,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const termsCheck = document.getElementById('terms-checkbox');
     const acceptTermsBtn = document.getElementById('acceptTermsBtn');
     const dateSpan = document.getElementById('current-date');
+    const celebration = document.getElementById('celebration');
+    
+    // STARTUP STATE - FORCE EVERYTHING OFF
+    termsModal.classList.add('hidden');
+    celebration.style.display = 'none'; // Force hide
     if(dateSpan) dateSpan.innerText = new Date().toLocaleDateString();
 
-    // 1. OPEN ENVELOPE (Manual Only)
+    // 1. OPEN ENVELOPE
     envWrap.addEventListener('click', () => {
         if(envWrap.classList.contains('open')) return;
         envWrap.classList.add('open');
-        
-        // Wait for flap animation
         setTimeout(() => {
             envWrap.classList.add('fly-away');
-            // Show paper after envelope flies
             setTimeout(() => {
                 envWrap.classList.add('hidden');
-                flap.style.display = 'none'; 
+                flap.style.display = 'none';
                 paper.classList.remove('hidden');
                 void paper.offsetWidth; 
                 paper.classList.add('visible');
@@ -61,17 +63,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if(acceptTermsBtn) {
         acceptTermsBtn.addEventListener('click', () => {
             termsModal.classList.add('hidden');
-            document.getElementById('celebration').classList.remove('hidden');
+            // FORCE DISPLAY FLEX
+            celebration.style.display = 'flex';
         });
     }
 
-    // --- INPUT HANDLING ---
-    // Track keys for desktop
+    // --- INPUT ---
     window.addEventListener('keydown', (e) => {
         if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
         keys[e.code] = true;
-        
-        // Pacman Input Buffer
         if(activeGame === 'pacman') {
             if(e.code === 'ArrowUp') pacNextDir = 1;
             if(e.code === 'ArrowDown') pacNextDir = 3;
@@ -81,22 +81,31 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     window.addEventListener('keyup', (e) => keys[e.code] = false);
 
-    // Track touch for mobile (Mario & Pacman)
+    // TOUCH
     ['up','down','left','right'].forEach(dir => {
         const btn = document.getElementById('d-'+dir);
         if(!btn) return;
-        
         const pacCode = {up:1, down:3, left:2, right:0}[dir];
         const keyMap = {up:'ArrowUp', down:'ArrowDown', left:'ArrowLeft', right:'ArrowRight'};
 
         const press = (e) => {
             e.preventDefault();
-            keys[keyMap[dir]] = true; // Set virtual key
+            keys[keyMap[dir]] = true; 
+            // Update touch state for Mario
+            if(dir === 'left') touchState.left = true;
+            if(dir === 'right') touchState.right = true;
+            if(dir === 'up') touchState.up = true;
+            if(dir === 'down') touchState.down = true;
+            // Update for Pacman
             if(activeGame === 'pacman') pacNextDir = pacCode; 
         };
         const release = (e) => { 
             e.preventDefault(); 
             keys[keyMap[dir]] = false; 
+            if(dir === 'left') touchState.left = false;
+            if(dir === 'right') touchState.right = false;
+            if(dir === 'up') touchState.up = false;
+            if(dir === 'down') touchState.down = false;
         };
 
         btn.addEventListener('touchstart', press);
@@ -107,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const jumpBtn = document.getElementById('jump-btn');
     if(jumpBtn) {
-        const h = (s) => { keys['Space'] = s; };
+        const h = (s) => { keys['Space'] = s; touchState.jump = s; };
         jumpBtn.addEventListener('touchstart', (e)=>{e.preventDefault(); h(true);});
         jumpBtn.addEventListener('touchend', (e)=>{e.preventDefault(); h(false);});
         jumpBtn.addEventListener('mousedown', (e)=>{e.preventDefault(); h(true);});
@@ -118,6 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
 let gameLoopId;
 let activeGame = null;
 let keys = {};
+let touchState = { left: false, right: false, up: false, down: false, jump: false };
 let pacNextDir = 0;
 
 function resetToMenu() {
@@ -151,34 +161,28 @@ function initGame(type) {
     let frame = 0;
     let alive = true;
 
-    // --- MARIO ---
+    // --- MARIO (SIMPLE RECTANGLE ENGINE) ---
     if (type === 'mario') {
         canvas.width = 340; canvas.height = 400;
         document.getElementById('dpad').classList.remove('hidden'); 
         document.getElementById('jump-btn').classList.remove('hidden');
         
-        let player = { x: 50, y: 300, w: 20, h: 30, vx: 0, vy: 0, grounded: false };
+        let player = { x: 50, y: 300, w: 24, h: 24, vx: 0, vy: 0, grounded: false };
         const GRAVITY = 0.6, JUMP = -11, SPEED = 4;
-        let items = []; // blocks + enemies + hearts
+        let items = [];
         
-        // Generate World (Simple Boxes)
+        // World Gen
         for(let i=0; i<200; i+=40) items.push({x: i, y: 360, w: 40, h: 40, t: 'ground'}); // Start Floor
         for(let i=300; i<2000; i+=40) {
-            // Random Floor
             if(Math.random() > 0.2) items.push({x: i, y: 360, w: 40, h: 40, t: 'ground'});
-            
-            // Random Platforms
             if(Math.random() > 0.7) {
                 let h = 250 - Math.random()*50;
                 items.push({x: i, y: h, w: 40, h: 40, t: 'brick'});
-                if(Math.random()>0.5) items.push({x: i, y: h-50, w: 20, h: 20, t: 'heart'});
+                if(Math.random()>0.5) items.push({x: i+10, y: h-30, w: 20, h: 20, t: 'heart'});
             }
-            
-            // Random Enemies
             if(Math.random() > 0.9) items.push({x: i, y: 330, w: 20, h: 20, t: 'enemy', vx: -1});
         }
 
-        // Rect Collision Function
         function checkCol(p, b) {
             return (p.x < b.x + b.w && p.x + p.w > b.x && p.y < b.y + b.h && p.y + p.h > b.y);
         }
@@ -189,16 +193,16 @@ function initGame(type) {
             
             // 1. Controls
             player.vx = 0;
-            if(keys['ArrowRight'] || keys['KeyD']) player.vx = SPEED;
-            if(keys['ArrowLeft'] || keys['KeyA']) player.vx = -SPEED;
+            if(keys['ArrowRight'] || keys['KeyD'] || touchState.right) player.vx = SPEED;
+            if(keys['ArrowLeft'] || keys['KeyA'] || touchState.left) player.vx = -SPEED;
             
-            if(keys['Space'] && player.grounded) { 
+            if((keys['Space'] || touchState.jump) && player.grounded) { 
                 player.vy = JUMP; player.grounded = false; 
             }
 
             // 2. Physics X
             player.x += player.vx;
-            // Scroll World if player moves past middle
+            // Scroll World
             if(player.x > 150) {
                 let shift = player.x - 150;
                 player.x = 150;
@@ -206,7 +210,7 @@ function initGame(type) {
             }
             player.x = Math.max(0, player.x);
 
-            // Collision X (Solid objects only)
+            // Collision X (Solid)
             items.forEach(b => {
                 if((b.t === 'ground' || b.t === 'brick') && checkCol(player, b)) {
                     if(player.vx > 0) player.x = b.x - player.w;
@@ -230,7 +234,6 @@ function initGame(type) {
                 }
             });
 
-            // 4. Game Logic (Hearts/Enemies)
             if(player.y > 400) { alive = false; document.getElementById('game-over').classList.remove('hidden'); }
             
             items.forEach((b, i) => {
@@ -257,12 +260,13 @@ function initGame(type) {
                 }
             });
             ctx.fillStyle = '#ff0000'; ctx.fillRect(player.x, player.y, player.w, player.h);
+            ctx.fillStyle = '#0000ff'; ctx.fillRect(player.x, player.y+16, player.w, 8);
             
             gameLoopId = requestAnimationFrame(marioLoop);
         }
         marioLoop();
 
-    // --- PAC-MAN ---
+    // --- PAC-MAN (Retained) ---
     } else if (type === 'pacman') {
         canvas.width = 336; canvas.height = 380;
         document.getElementById('dpad').classList.remove('hidden');
@@ -320,7 +324,6 @@ function initGame(type) {
             }
             if(powerTimer===0) ghosts.forEach(g=>g.vulnerable=false);
             
-            // Draw Player with Rotation
             ctx.save();
             ctx.translate(player.x*TILE+8, player.y*TILE+8);
             if(player.dir === 1) ctx.rotate(-Math.PI/2); 
@@ -334,7 +337,7 @@ function initGame(type) {
         }
         pacLoop();
 
-    // --- INVADERS & PAPERBOY (Retained) ---
+    // --- INVADERS ---
     } else if (type === 'invaders') {
         canvas.width = 340; canvas.height = 450;
         let player = { x: 150, w: 40, h: 20 }, bullets = [], invaders = [], invDir = 1;
@@ -349,6 +352,7 @@ function initGame(type) {
             if(keys['ArrowLeft'] || keys['KeyA'] || touchState.left) player.x-=5; 
             if(keys['ArrowRight'] || keys['KeyD'] || touchState.right) player.x+=5; 
             player.x=Math.max(0,Math.min(canvas.width-40,player.x));
+
             if(frame%4===0) { let hitEdge=false; invaders.forEach(inv=>{inv.x+=(2*invDir); if(inv.x>canvas.width-30 || inv.x<0) hitEdge=true;}); if(hitEdge) { invDir*=-1; invaders.forEach(inv=>inv.y+=10); } }
             ctx.fillStyle='red'; ctx.font='24px Arial'; invaders.forEach(inv=>{ctx.fillText(inv.t,inv.x,inv.y); if(inv.y>380) {alive=false; document.getElementById('game-over').classList.remove('hidden');}});
             bullets.forEach((b,i)=>{b.y-=7; ctx.fillText('❤️',b.x,b.y); invaders.forEach((inv,ii)=>{if(b.x>inv.x && b.x<inv.x+30 && b.y<inv.y && b.y>inv.y-20) {invaders.splice(ii,1); bullets.splice(i,1); document.getElementById('score').innerText=(score+=100);}});});
@@ -357,6 +361,8 @@ function initGame(type) {
             gameLoopId=requestAnimationFrame(invLoop);
         }
         invLoop();
+
+    // --- PAPERBOY ---
     } else if (type === 'paperboy') {
         canvas.width = 340; canvas.height = 450;
         let player = { x: 170, y: 350 }, world = [], hearts = [];
