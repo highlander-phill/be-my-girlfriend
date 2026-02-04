@@ -305,7 +305,7 @@ function initGame(type) {
         function fire() { bullets.push({ x: player.x+15, y: 400 }); }
         canvas.addEventListener('touchstart', (e)=>{e.preventDefault();fire();}); 
         canvas.addEventListener('touchmove', (e)=>{e.preventDefault();player.x=e.touches[0].clientX-canvas.getBoundingClientRect().left-20;}); 
-        window.addEventListener('keydown', (e)=>{if(e.code==='Space'&&alive)fire();});
+        window.addEventListener('keydown', (e)=>{if(e.code==='Space'&&alive&&type==='invaders')fire();});
         function invLoop() {
             if(!alive) return; frame++;
             ctx.fillStyle='#000'; ctx.fillRect(0,0,canvas.width,canvas.height);
