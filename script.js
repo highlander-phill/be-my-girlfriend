@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const dateSpan = document.getElementById('current-date');
     const celebration = document.getElementById('celebration');
     
-    // STARTUP STATE
+    // STARTUP - ENSURE HIDDEN
     termsModal.classList.add('hidden');
     celebration.classList.add('hidden');
     if(dateSpan) dateSpan.innerText = new Date().toLocaleDateString();
@@ -49,11 +49,11 @@ document.addEventListener('DOMContentLoaded', () => {
         paper.style.transform = "translateY(-150%) rotate(10deg)";
         setTimeout(() => {
             paper.classList.add('hidden');
-            termsModal.classList.remove('hidden'); 
+            termsModal.classList.remove('hidden'); // SHOW MODAL
         }, 500);
     });
 
-    // 4. TERMS -> GAME MENU
+    // 4. TERMS -> GAME
     if(termsCheck) {
         termsCheck.addEventListener('change', (e) => {
             if(e.target.checked) acceptTermsBtn.classList.remove('disabled');
@@ -63,10 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if(acceptTermsBtn) {
         acceptTermsBtn.addEventListener('click', () => {
             termsModal.classList.add('hidden');
-            // Remove hidden class from celebration
-            celebration.classList.remove('hidden');
-            // Force display style just in case CSS fails
-            celebration.style.display = 'flex';
+            celebration.classList.remove('hidden'); // SHOW GAME
         });
     }
 
@@ -83,16 +80,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     window.addEventListener('keyup', (e) => keys[e.code] = false);
 
-    // TOUCH
+    // TOUCH HANDLERS
     ['up','down','left','right'].forEach(dir => {
         const btn = document.getElementById('d-'+dir);
         if(!btn) return;
         const pacCode = {up:1, down:3, left:2, right:0}[dir];
-        const keyMap = {up:'ArrowUp', down:'ArrowDown', left:'ArrowLeft', right:'ArrowRight'};
-
+        
         const press = (e) => {
             e.preventDefault();
-            keys[keyMap[dir]] = true; 
             if(dir === 'left') touchState.left = true;
             if(dir === 'right') touchState.right = true;
             if(dir === 'up') touchState.up = true;
@@ -101,7 +96,6 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         const release = (e) => { 
             e.preventDefault(); 
-            keys[keyMap[dir]] = false; 
             if(dir === 'left') touchState.left = false;
             if(dir === 'right') touchState.right = false;
             if(dir === 'up') touchState.up = false;
@@ -116,7 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const jumpBtn = document.getElementById('jump-btn');
     if(jumpBtn) {
-        const h = (s) => { keys['Space'] = s; touchState.jump = s; };
+        const h = (s) => { touchState.jump = s; };
         jumpBtn.addEventListener('touchstart', (e)=>{e.preventDefault(); h(true);});
         jumpBtn.addEventListener('touchend', (e)=>{e.preventDefault(); h(false);});
         jumpBtn.addEventListener('mousedown', (e)=>{e.preventDefault(); h(true);});
@@ -161,7 +155,7 @@ function initGame(type) {
     let frame = 0;
     let alive = true;
 
-    // --- MARIO (SIMPLE RECTANGLE ENGINE) ---
+    // --- MARIO ---
     if (type === 'mario') {
         canvas.width = 340; canvas.height = 400;
         document.getElementById('dpad').classList.remove('hidden'); 
@@ -171,8 +165,8 @@ function initGame(type) {
         const GRAVITY = 0.6, JUMP = -11, SPEED = 4;
         let items = [];
         
-        // World Gen
-        for(let i=0; i<200; i+=40) items.push({x: i, y: 360, w: 40, h: 40, t: 'ground'}); // Start Floor
+        // World
+        for(let i=0; i<200; i+=40) items.push({x: i, y: 360, w: 40, h: 40, t: 'ground'}); 
         for(let i=300; i<2000; i+=40) {
             if(Math.random() > 0.2) items.push({x: i, y: 360, w: 40, h: 40, t: 'ground'});
             if(Math.random() > 0.7) {
@@ -209,7 +203,6 @@ function initGame(type) {
             }
             player.x = Math.max(0, player.x);
 
-            // Collision X (Solid)
             items.forEach(b => {
                 if((b.t === 'ground' || b.t === 'brick') && checkCol(player, b)) {
                     if(player.vx > 0) player.x = b.x - player.w;
@@ -222,7 +215,6 @@ function initGame(type) {
             player.y += player.vy;
             player.grounded = false;
 
-            // Collision Y
             items.forEach(b => {
                 if((b.t === 'ground' || b.t === 'brick') && checkCol(player, b)) {
                     if(player.vy > 0 && player.y < b.y) {
@@ -265,7 +257,7 @@ function initGame(type) {
         }
         marioLoop();
 
-    // --- PAC-MAN (Retained) ---
+    // --- PAC-MAN ---
     } else if (type === 'pacman') {
         canvas.width = 336; canvas.height = 380;
         document.getElementById('dpad').classList.remove('hidden');
@@ -336,7 +328,7 @@ function initGame(type) {
         }
         pacLoop();
 
-    // --- INVADERS & PAPERBOY (Retained) ---
+    // --- INVADERS ---
     } else if (type === 'invaders') {
         canvas.width = 340; canvas.height = 450;
         let player = { x: 150, w: 40, h: 20 }, bullets = [], invaders = [], invDir = 1;
@@ -360,6 +352,8 @@ function initGame(type) {
             gameLoopId=requestAnimationFrame(invLoop);
         }
         invLoop();
+
+    // --- PAPERBOY ---
     } else if (type === 'paperboy') {
         canvas.width = 340; canvas.height = 450;
         let player = { x: 170, y: 350 }, world = [], hearts = [];

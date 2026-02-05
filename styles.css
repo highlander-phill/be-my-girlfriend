@@ -2,19 +2,18 @@
 body { font-family: 'Indie Flower', cursive; background: #222; overflow: hidden; min-height: 100vh; display: flex; justify-content: center; align-items: center; }
 .container { width: 100%; max-width: 450px; padding: 10px; perspective: 1000px; position: relative; z-index: 1; }
 
-/* --- ENVELOPE --- */
+/* ENVELOPE */
 .envelope-wrapper { position: relative; width: 300px; height: 180px; margin: 0 auto; cursor: pointer; transition: all 1s ease; z-index: 10; }
 .envelope { position: relative; width: 100%; height: 100%; background: #ff7675; border-radius: 0 0 5px 5px; }
 .envelope-pocket { position: absolute; bottom: 0; left: 0; width: 0; height: 0; border-style: solid; border-width: 0 150px 100px 150px; border-color: transparent transparent #e17055 transparent; z-index: 3; }
 .envelope-flap { position: absolute; top: 0; left: 0; width: 0; height: 0; border-style: solid; border-width: 100px 150px 0 150px; border-color: #c0392b transparent transparent transparent; z-index: 4; transform-origin: top; transition: transform 0.6s ease; }
-
-/* NAME CARD - Force on top */
+/* Name Card: Fixed position to avoid flap */
 .card { position: absolute; bottom: 10px; left: 0; width: 100%; text-align: center; color: white; z-index: 100; font-family: 'Permanent Marker', cursive; font-size: 2.2rem; text-shadow: 0 2px 5px rgba(0,0,0,0.2); pointer-events: none; }
 
 .envelope-wrapper.open .envelope-flap { transform: rotateX(180deg); z-index: 1; }
 .envelope-wrapper.fly-away { transform: translateY(100vh) rotate(20deg); opacity: 0; }
 
-/* --- PAPER --- */
+/* PAPER */
 .paper { background: white; width: 100%; padding: 40px 20px 30px 40px; background-image: repeating-linear-gradient(white 0px, white 27px, #a2d2ff 28px); line-height: 28px; transform: rotate(1deg) scale(0.1); opacity: 0; position: relative; min-height: 400px; transition: all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 5px 20px rgba(0,0,0,0.2); z-index: 5; }
 .paper.visible { transform: rotate(1deg) scale(1); opacity: 1; }
 .paper::before { content: ''; position: absolute; top: 0; left: 35px; height: 100%; width: 2px; background: #ff7675; }
@@ -25,31 +24,37 @@ body { font-family: 'Indie Flower', cursive; background: #222; overflow: hidden;
 .yes-btn { position: absolute; left: 50%; transform: translateX(-50%); background: #0984e3; color: white; border: none; padding: 12px 40px; border-radius: 50px; font-size: 1.6rem; cursor: pointer; z-index: 5; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
 .no-btn { background: #b2bec3; color: white; border: none; padding: 8px 15px; border-radius: 5px; position: absolute; top: 85px; left: 50%; transform: translateX(-50%); transition: all 0.1s ease; z-index: 6; cursor: pointer; }
 
-/* --- TERMS MODAL (SCROLL FIX) --- */
-/* Removed Flexbox. Using standard block layout for guaranteed scrolling */
+/* --- TERMS MODAL (RESTORED & FIXED) --- */
 #terms-modal { 
-    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
+    position: fixed; 
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%; 
     background: rgba(0,0,0,0.9); 
     z-index: 9999; 
-    overflow-y: auto; /* Standard scrolling */
+    /* This forces scrolling on mobile */
+    overflow-y: scroll; 
     -webkit-overflow-scrolling: touch; 
-    display: block; 
-    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start; /* Align to TOP, not center */
+    padding: 20px;
 }
 
-/* Force Hidden state */
 #terms-modal.hidden { display: none !important; }
 
 .legal-paper { 
     background: #fff; 
-    width: 90%; 
-    max-width: 420px; 
-    margin: 40px auto 80px auto; /* Centered with margin top/bottom */
     padding: 25px; 
+    width: 100%; 
+    max-width: 420px; 
     box-shadow: 0 10px 40px rgba(0,0,0,0.5); 
     font-family: 'Roboto', sans-serif; 
     position: relative; 
     border-radius: 4px; 
+    /* Add margin to bottom so we can scroll past it */
+    margin-bottom: 100px; 
 }
 
 .legal-header { border-bottom: 2px solid #333; margin-bottom: 20px; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
@@ -66,9 +71,8 @@ body { font-family: 'Indie Flower', cursive; background: #222; overflow: hidden;
 .docusign-btn:hover { background: #ffca2c; }
 .disabled { opacity: 0.5; pointer-events: none; background: #ccc; }
 
-/* --- ARCADE --- */
+/* ARCADE */
 .celebration { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #000; z-index: 10000; overflow: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-.celebration[style*="display: block"] { display: flex !important; }
 .celebration.hidden { display: none !important; }
 
 #game-selection { text-align: center; width: 100%; max-width: 400px; padding: 20px; }
@@ -88,3 +92,4 @@ body { font-family: 'Indie Flower', cursive; background: #222; overflow: hidden;
 #game-over { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); padding: 30px; border: 2px solid red; z-index: 2000; width: 320px; text-align: center; }
 .blink { animation: blink 1s infinite; }
 @keyframes blink { 50% { opacity: 0; } }
+.hidden { display: none !important; }
