@@ -13,9 +13,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const dateSpan = document.getElementById('current-date');
     const celebration = document.getElementById('celebration');
     
-    // STARTUP - ENSURE HIDDEN
+    // STARTUP
     termsModal.classList.add('hidden');
-    celebration.classList.add('hidden');
+    celebration.style.display = 'none'; 
     if(dateSpan) dateSpan.innerText = new Date().toLocaleDateString();
 
     // 1. OPEN ENVELOPE
@@ -49,11 +49,11 @@ document.addEventListener('DOMContentLoaded', () => {
         paper.style.transform = "translateY(-150%) rotate(10deg)";
         setTimeout(() => {
             paper.classList.add('hidden');
-            termsModal.classList.remove('hidden'); // SHOW MODAL
+            termsModal.classList.remove('hidden'); 
         }, 500);
     });
 
-    // 4. TERMS -> GAME
+    // 4. TERMS -> GAME MENU
     if(termsCheck) {
         termsCheck.addEventListener('change', (e) => {
             if(e.target.checked) acceptTermsBtn.classList.remove('disabled');
@@ -63,7 +63,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if(acceptTermsBtn) {
         acceptTermsBtn.addEventListener('click', () => {
             termsModal.classList.add('hidden');
-            celebration.classList.remove('hidden'); // SHOW GAME
+            celebration.style.display = 'flex';
+            // FORCE RESET GAME UI
+            document.getElementById('arcade-wrap').style.display = 'none';
+            document.getElementById('game-over').style.display = 'none';
+            document.getElementById('game-selection').style.display = 'block';
         });
     }
 
@@ -80,14 +84,16 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     window.addEventListener('keyup', (e) => keys[e.code] = false);
 
-    // TOUCH HANDLERS
+    // TOUCH
     ['up','down','left','right'].forEach(dir => {
         const btn = document.getElementById('d-'+dir);
         if(!btn) return;
         const pacCode = {up:1, down:3, left:2, right:0}[dir];
-        
+        const keyMap = {up:'ArrowUp', down:'ArrowDown', left:'ArrowLeft', right:'ArrowRight'};
+
         const press = (e) => {
             e.preventDefault();
+            keys[keyMap[dir]] = true; 
             if(dir === 'left') touchState.left = true;
             if(dir === 'right') touchState.right = true;
             if(dir === 'up') touchState.up = true;
@@ -96,6 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         const release = (e) => { 
             e.preventDefault(); 
+            keys[keyMap[dir]] = false; 
             if(dir === 'left') touchState.left = false;
             if(dir === 'right') touchState.right = false;
             if(dir === 'up') touchState.up = false;
@@ -110,7 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const jumpBtn = document.getElementById('jump-btn');
     if(jumpBtn) {
-        const h = (s) => { touchState.jump = s; };
+        const h = (s) => { keys['Space'] = s; touchState.jump = s; };
         jumpBtn.addEventListener('touchstart', (e)=>{e.preventDefault(); h(true);});
         jumpBtn.addEventListener('touchend', (e)=>{e.preventDefault(); h(false);});
         jumpBtn.addEventListener('mousedown', (e)=>{e.preventDefault(); h(true);});
@@ -127,9 +134,9 @@ let pacNextDir = 0;
 function resetToMenu() {
     if(gameLoopId) cancelAnimationFrame(gameLoopId);
     activeGame = null;
-    document.getElementById('arcade-wrap').classList.add('hidden');
-    document.getElementById('game-selection').classList.remove('hidden');
-    document.getElementById('game-over').classList.add('hidden');
+    document.getElementById('arcade-wrap').style.display = 'none'; // Force hide
+    document.getElementById('game-selection').style.display = 'block'; // Force show
+    document.getElementById('game-over').style.display = 'none'; // Force hide
     document.getElementById('jump-btn').classList.add('hidden');
     document.getElementById('dpad').classList.add('hidden');
 }
@@ -139,9 +146,10 @@ function restartLevel() {
 }
 
 function initGame(type) {
-    document.getElementById('game-selection').classList.add('hidden');
+    document.getElementById('game-selection').style.display = 'none'; // Hide menu
+    document.getElementById('arcade-wrap').style.display = 'flex'; // Show game
     document.getElementById('arcade-wrap').classList.remove('hidden');
-    document.getElementById('game-over').classList.add('hidden');
+    document.getElementById('game-over').style.display = 'none'; // Ensure no game over
     document.getElementById('dpad').classList.add('hidden');
     document.getElementById('jump-btn').classList.add('hidden');
 
@@ -165,7 +173,6 @@ function initGame(type) {
         const GRAVITY = 0.6, JUMP = -11, SPEED = 4;
         let items = [];
         
-        // World
         for(let i=0; i<200; i+=40) items.push({x: i, y: 360, w: 40, h: 40, t: 'ground'}); 
         for(let i=300; i<2000; i+=40) {
             if(Math.random() > 0.2) items.push({x: i, y: 360, w: 40, h: 40, t: 'ground'});
@@ -185,7 +192,6 @@ function initGame(type) {
             if(!alive) return;
             frame++;
             
-            // 1. Controls
             player.vx = 0;
             if(keys['ArrowRight'] || keys['KeyD'] || touchState.right) player.vx = SPEED;
             if(keys['ArrowLeft'] || keys['KeyA'] || touchState.left) player.vx = -SPEED;
@@ -194,7 +200,6 @@ function initGame(type) {
                 player.vy = JUMP; player.grounded = false; 
             }
 
-            // 2. Physics X
             player.x += player.vx;
             if(player.x > 150) {
                 let shift = player.x - 150;
@@ -210,7 +215,6 @@ function initGame(type) {
                 }
             });
 
-            // 3. Physics Y
             player.vy += GRAVITY;
             player.y += player.vy;
             player.grounded = false;
@@ -225,7 +229,10 @@ function initGame(type) {
                 }
             });
 
-            if(player.y > 400) { alive = false; document.getElementById('game-over').classList.remove('hidden'); }
+            if(player.y > 400) { 
+                alive = false; 
+                document.getElementById('game-over').style.display = 'block'; 
+            }
             
             items.forEach((b, i) => {
                 if(b.t === 'heart' && checkCol(player, b)) {
@@ -235,12 +242,12 @@ function initGame(type) {
                 if(b.t === 'enemy') {
                     b.x += b.vx;
                     if(checkCol(player, b)) {
-                        alive = false; document.getElementById('game-over').classList.remove('hidden');
+                        alive = false; 
+                        document.getElementById('game-over').style.display = 'block'; 
                     }
                 }
             });
 
-            // 5. Draw
             ctx.fillStyle = '#5c94fc'; ctx.fillRect(0,0,canvas.width,canvas.height);
             items.forEach(b => {
                 if(b.x > -50 && b.x < 400) {
@@ -308,8 +315,8 @@ function initGame(type) {
                     if(g.dir===0) g.x++; if(g.dir===1) g.y--; if(g.dir===2) g.x--; if(g.dir===3) g.y++;
                     if(g.x<0) g.x=map[0].length-1; if(g.x>=map[0].length) g.x=0; if(g.y<0) g.y=map.length-1; if(g.y>=map.length) g.y=0;
                     if(g.x===player.x && g.y===player.y) {
-                        if(g.vulnerable) { g.x=10; g.y=8; g.vulnerable=false; document.getElementById('score').innerText=(score+=200); }
-                        else { alive=false; document.getElementById('game-over').classList.remove('hidden'); }
+                        if(g.vulnerable) { g.x=10; g.y=8; g.vulnerable=false; document.getElementById('game-over').style.display='block'; }
+                        else { alive=false; document.getElementById('game-over').style.display='block'; }
                     }
                 });
             }
@@ -345,10 +352,10 @@ function initGame(type) {
             player.x=Math.max(0,Math.min(canvas.width-40,player.x));
 
             if(frame%4===0) { let hitEdge=false; invaders.forEach(inv=>{inv.x+=(2*invDir); if(inv.x>canvas.width-30 || inv.x<0) hitEdge=true;}); if(hitEdge) { invDir*=-1; invaders.forEach(inv=>inv.y+=10); } }
-            ctx.fillStyle='red'; ctx.font='24px Arial'; invaders.forEach(inv=>{ctx.fillText(inv.t,inv.x,inv.y); if(inv.y>380) {alive=false; document.getElementById('game-over').classList.remove('hidden');}});
+            ctx.fillStyle='red'; ctx.font='24px Arial'; invaders.forEach(inv=>{ctx.fillText(inv.t,inv.x,inv.y); if(inv.y>380) {alive=false; document.getElementById('game-over').style.display='block';}});
             bullets.forEach((b,i)=>{b.y-=7; ctx.fillText('❤️',b.x,b.y); invaders.forEach((inv,ii)=>{if(b.x>inv.x && b.x<inv.x+30 && b.y<inv.y && b.y>inv.y-20) {invaders.splice(ii,1); bullets.splice(i,1); document.getElementById('score').innerText=(score+=100);}});});
             ctx.fillStyle='#00ff00'; ctx.fillRect(player.x,420,40,20); ctx.fillRect(player.x+15,410,10,10);
-            if(invaders.length===0) { document.getElementById('game-over').querySelector('h2').innerText="YOU WIN!"; alive=false; document.getElementById('game-over').classList.remove('hidden'); }
+            if(invaders.length===0) { document.getElementById('game-over').querySelector('h2').innerText="YOU WIN!"; alive=false; document.getElementById('game-over').style.display='block'; }
             gameLoopId=requestAnimationFrame(invLoop);
         }
         invLoop();
@@ -372,7 +379,7 @@ function initGame(type) {
             world.forEach((w,i)=>{
                 w.y+=w.speed; if(w.isCar && w.y<0) w.x=Math.max(120, Math.min(300, w.x)); 
                 ctx.font='40px Arial'; ctx.fillText(w.hit?'💖':w.t,w.x,w.y); 
-                if(w.isCar && Math.hypot(player.x-w.x,player.y-w.y)<30) {alive=false; document.getElementById('game-over').classList.remove('hidden');} if(w.y>500) world.splice(i,1);
+                if(w.isCar && Math.hypot(player.x-w.x,player.y-w.y)<30) {alive=false; document.getElementById('game-over').style.display='block';} if(w.y>500) world.splice(i,1);
             });
             hearts.forEach((h,i)=>{h.x+=h.vx; h.y+=h.vy; ctx.font='20px Arial'; ctx.fillText('❤️',h.x,h.y); world.forEach(w=>{if(w.t==='🏠'&&!w.hit&&Math.hypot(h.x-w.x,h.y-w.y)<40){w.hit=true;document.getElementById('score').innerText=(score+=50);}});});
             ctx.font='40px Arial'; ctx.fillText('🚲',player.x,player.y);

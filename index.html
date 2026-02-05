@@ -66,7 +66,8 @@
             </div>
         </div>
 
-        <div class="celebration hidden" id="celebration">
+        <div class="celebration" id="celebration" style="display: none;">
+            
             <div id="game-selection">
                 <h2 class="arcade-title">SELECT GAME</h2>
                 <button class="menu-btn" onclick="initGame('paperboy')">PAPERBOY: LOVE DELIVERY</button>
@@ -75,7 +76,7 @@
                 <button class="menu-btn" onclick="initGame('mario')">SUPER PHILLIO BROS</button>
             </div>
             
-            <div id="arcade-wrap" class="hidden">
+            <div id="arcade-wrap" class="hidden" style="display: none;">
                 <div class="stats-bar">
                     <span id="score-label">SCORE: <span id="score">0</span></span>
                     <button onclick="resetToMenu()" class="exit-btn">MENU</button>
@@ -94,7 +95,7 @@
                 
                 <button id="jump-btn" class="action-btn hidden">JUMP</button>
 
-                <div id="game-over" class="hidden">
+                <div id="game-over" class="hidden" style="display: none;">
                     <h2 class="blink" style="color:red; margin-bottom: 10px;">GAME OVER!</h2>
                     <p style="color: #00ff00; margin-bottom: 20px; font-family: monospace;">But don't worry,<br>you still get Phillip! 😉</p>
                     <button onclick="restartLevel()" class="menu-btn">TRY AGAIN</button>

@@ -7,8 +7,8 @@ body { font-family: 'Indie Flower', cursive; background: #222; overflow: hidden;
 .envelope { position: relative; width: 100%; height: 100%; background: #ff7675; border-radius: 0 0 5px 5px; }
 .envelope-pocket { position: absolute; bottom: 0; left: 0; width: 0; height: 0; border-style: solid; border-width: 0 150px 100px 150px; border-color: transparent transparent #e17055 transparent; z-index: 3; }
 .envelope-flap { position: absolute; top: 0; left: 0; width: 0; height: 0; border-style: solid; border-width: 100px 150px 0 150px; border-color: #c0392b transparent transparent transparent; z-index: 4; transform-origin: top; transition: transform 0.6s ease; }
-/* Name Card: Fixed position to avoid flap */
-.card { position: absolute; bottom: 10px; left: 0; width: 100%; text-align: center; color: white; z-index: 100; font-family: 'Permanent Marker', cursive; font-size: 2.2rem; text-shadow: 0 2px 5px rgba(0,0,0,0.2); pointer-events: none; }
+/* Forced to bottom */
+.card { position: absolute; bottom: 20px; left: 0; width: 100%; text-align: center; color: white; z-index: 100; font-family: 'Permanent Marker', cursive; font-size: 2.2rem; text-shadow: 0 2px 5px rgba(0,0,0,0.2); pointer-events: none; }
 
 .envelope-wrapper.open .envelope-flap { transform: rotateX(180deg); z-index: 1; }
 .envelope-wrapper.fly-away { transform: translateY(100vh) rotate(20deg); opacity: 0; }
@@ -24,37 +24,27 @@ body { font-family: 'Indie Flower', cursive; background: #222; overflow: hidden;
 .yes-btn { position: absolute; left: 50%; transform: translateX(-50%); background: #0984e3; color: white; border: none; padding: 12px 40px; border-radius: 50px; font-size: 1.6rem; cursor: pointer; z-index: 5; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
 .no-btn { background: #b2bec3; color: white; border: none; padding: 8px 15px; border-radius: 5px; position: absolute; top: 85px; left: 50%; transform: translateX(-50%); transition: all 0.1s ease; z-index: 6; cursor: pointer; }
 
-/* --- TERMS MODAL (RESTORED & FIXED) --- */
+/* TERMS MODAL (SCROLLING FIX) */
 #terms-modal { 
-    position: fixed; 
-    top: 0; 
-    left: 0; 
-    width: 100%; 
-    height: 100%; 
-    background: rgba(0,0,0,0.9); 
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+    background: rgba(0,0,0,0.95); 
     z-index: 9999; 
-    /* This forces scrolling on mobile */
-    overflow-y: scroll; 
+    overflow-y: auto; 
     -webkit-overflow-scrolling: touch; 
-    display: flex;
-    justify-content: center;
-    align-items: flex-start; /* Align to TOP, not center */
-    padding: 20px;
+    display: block; /* NO FLEX */
+    padding-top: 50px; /* Space from top */
 }
-
-#terms-modal.hidden { display: none !important; }
 
 .legal-paper { 
     background: #fff; 
-    padding: 25px; 
-    width: 100%; 
+    width: 90%; 
     max-width: 420px; 
+    margin: 0 auto 100px auto; /* Margin bottom for scrolling space */
+    padding: 25px; 
     box-shadow: 0 10px 40px rgba(0,0,0,0.5); 
     font-family: 'Roboto', sans-serif; 
     position: relative; 
     border-radius: 4px; 
-    /* Add margin to bottom so we can scroll past it */
-    margin-bottom: 100px; 
 }
 
 .legal-header { border-bottom: 2px solid #333; margin-bottom: 20px; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
@@ -73,8 +63,6 @@ body { font-family: 'Indie Flower', cursive; background: #222; overflow: hidden;
 
 /* ARCADE */
 .celebration { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #000; z-index: 10000; overflow: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-.celebration.hidden { display: none !important; }
-
 #game-selection { text-align: center; width: 100%; max-width: 400px; padding: 20px; }
 .arcade-title { font-family: 'Permanent Marker', cursive; color: #ff00ff; font-size: 2.5rem; text-shadow: 0 0 10px #ff00ff; margin-bottom: 30px; }
 .menu-btn { background: #111; color: #00ff00; border: 2px solid #00ff00; padding: 15px; width: 100%; max-width: 280px; margin: 15px auto; display: block; font-family: 'VT323', monospace; font-size: 1.4rem; cursor: pointer; text-transform: uppercase; }
