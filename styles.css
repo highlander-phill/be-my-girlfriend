@@ -19,6 +19,11 @@ body { font-family: 'Indie Flower', cursive; background: #222; overflow: hidden;
 .paper::before { content: ''; position: absolute; top: 0; left: 35px; height: 100%; width: 2px; background: #ff7675; }
 .intro { font-size: 1.4rem; font-weight: bold; color: #333; }
 .message { font-size: 1.2rem; margin-top: 20px; color: #555; }
+
+/* THE FADE IN LOGIC */
+.invisible { opacity: 0; transition: opacity 2s ease-in; } /* Takes 2 seconds to fade in */
+.fade-in-slow { opacity: 1 !important; }
+
 .main-question { font-size: 1.8rem; color: #d63031; text-align: center; margin-top: 30px; font-weight: bold; line-height: 1.2; }
 .action-area { margin-top: 20px; height: 140px; position: relative; }
 .yes-btn { position: absolute; left: 50%; transform: translateX(-50%); background: #0984e3; color: white; border: none; padding: 12px 40px; border-radius: 50px; font-size: 1.6rem; cursor: pointer; z-index: 5; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
@@ -59,7 +64,6 @@ body { font-family: 'Indie Flower', cursive; background: #222; overflow: hidden;
     border: 4px solid #222; 
     margin: 10px auto; 
     display: block; 
-    /* iOS SAFETY FIXES: */
     touch-action: none; 
     -webkit-touch-callout: none;
     -webkit-user-select: none;

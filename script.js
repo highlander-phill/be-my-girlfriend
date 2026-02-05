@@ -6,7 +6,6 @@ let pacNextDir = 0;
 let gameLevel = 1;
 let currentScore = 0;
 
-// Variables to hold the touch functions so we can remove them later
 let handleTouchStart = null;
 let handleTouchMove = null;
 let handleTouchEnd = null;
@@ -21,7 +20,6 @@ function resetToMenu() {
     document.getElementById('game-over').style.display = 'none';
     document.getElementById('dpad').classList.add('hidden');
     
-    // Clean up old listeners
     const canvas = document.getElementById('gameCanvas');
     if (handleTouchStart) canvas.removeEventListener('touchstart', handleTouchStart);
     if (handleTouchMove) canvas.removeEventListener('touchmove', handleTouchMove);
@@ -76,7 +74,6 @@ function initGame(type) {
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     
-    // 1. CLEANUP OLD LISTENERS
     if (handleTouchStart) canvas.removeEventListener('touchstart', handleTouchStart);
     if (handleTouchMove) canvas.removeEventListener('touchmove', handleTouchMove);
     if (handleTouchEnd) canvas.removeEventListener('touchend', handleTouchEnd);
@@ -87,7 +84,6 @@ function initGame(type) {
     let frame = 0;
     let alive = true;
 
-    // --- KEYBOARD SETUP ---
     window.addEventListener('keydown', (e) => {
         if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
         keys[e.code] = true;
@@ -99,7 +95,6 @@ function initGame(type) {
         canvas.width = 336; canvas.height = 380;
         document.getElementById('dpad').classList.remove('hidden');
         
-        // SWIPE LOGIC FOR PACMAN
         let tsX = 0, tsY = 0;
         handleTouchStart = (e) => { 
             e.preventDefault(); 
@@ -119,7 +114,6 @@ function initGame(type) {
             }
         };
         
-        // Add listeners with passive: false for iOS
         canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
         canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
 
@@ -137,11 +131,13 @@ function initGame(type) {
         let player = { x: 10, y: 14, dir: 0 };
         let ghosts = [ { x: 9, y: 8, color: 'red' }, { x: 10, y: 8, color: 'pink' }, { x: 11, y: 8, color: 'cyan' } ];
         let dotsRemaining = 0;
+        
         for(let r=0;r<map.length;r++) for(let c=0;c<map[r].length;c++) if(map[r][c]===0 || map[r][c]===8) dotsRemaining++;
 
         function pacLoop() {
             if(!alive) return;
             frame++;
+            
             if (keys['ArrowUp']) pacNextDir = 1;
             if (keys['ArrowDown']) pacNextDir = 3;
             if (keys['ArrowLeft']) pacNextDir = 2;
@@ -159,6 +155,7 @@ function initGame(type) {
                 let dx=0, dy=0; 
                 if(pacNextDir===0) dx=1; if(pacNextDir===1) dy=-1; if(pacNextDir===2) dx=-1; if(pacNextDir===3) dy=1;
                 let nextX=player.x+dx, nextY=player.y+dy;
+                
                 if(nextX<0) nextX=map[0].length-1; if(nextX>=map[0].length) nextX=0; 
                 if(nextY<0) nextY=map.length-1; if(nextY>=map.length) nextY=0;
                 
@@ -209,11 +206,9 @@ function initGame(type) {
         
         function fire() { bullets.push({ x: player.x+15, y: 400 }); }
         
-        // DIRECT DRAG FOR INVADERS
         handleTouchMove = (e) => {
             e.preventDefault();
             let rect = canvas.getBoundingClientRect();
-            // Map touch X to canvas coordinate
             let scaleX = canvas.width / rect.width;
             let touchX = (e.touches[0].clientX - rect.left) * scaleX;
             player.x = touchX - 20; 
@@ -270,7 +265,6 @@ function initGame(type) {
         let distance = 0;
         let goal = 1000 + (gameLevel * 500);
 
-        // DIRECT DRAG FOR PAPERBOY
         handleTouchMove = (e) => {
             e.preventDefault();
             let rect = canvas.getBoundingClientRect();
@@ -357,6 +351,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 paper.classList.remove('hidden');
                 void paper.offsetWidth; 
                 paper.classList.add('visible');
+                
+                // DRAMATIC REVEAL - 4 Seconds later
+                setTimeout(() => {
+                    document.getElementById('delayed-content').classList.add('fade-in-slow');
+                }, 4000);
+
             }, 500);
         }, 600);
     });
