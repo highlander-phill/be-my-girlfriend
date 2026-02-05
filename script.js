@@ -1,21 +1,19 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // UI ELEMENTS
+    // ELEMENTS
     const envWrap = document.getElementById('envelope-wrap');
     const flap = document.getElementById('flap');
     const paper = document.getElementById('main-paper');
     const area = document.getElementById('actionArea');
     const no = document.getElementById('noBtn');
-    
-    // CONTRACT
     const termsModal = document.getElementById('terms-modal');
     const termsCheck = document.getElementById('terms-checkbox');
     const acceptTermsBtn = document.getElementById('acceptTermsBtn');
     const dateSpan = document.getElementById('current-date');
     const celebration = document.getElementById('celebration');
     
-    // STARTUP
-    termsModal.classList.add('hidden');
-    celebration.classList.add('hidden');
+    // FORCE RESET
+    if(termsModal) termsModal.classList.add('hidden');
+    if(celebration) celebration.classList.add('hidden');
     if(dateSpan) dateSpan.innerText = new Date().toLocaleDateString();
 
     // 1. OPEN ENVELOPE
@@ -53,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 500);
     });
 
-    // 4. TERMS -> GAME MENU
+    // 4. ACCEPT TERMS
     if(termsCheck) {
         termsCheck.addEventListener('change', (e) => {
             if(e.target.checked) acceptTermsBtn.classList.remove('disabled');
@@ -64,15 +62,14 @@ document.addEventListener('DOMContentLoaded', () => {
         acceptTermsBtn.addEventListener('click', () => {
             termsModal.classList.add('hidden');
             celebration.classList.remove('hidden');
-            celebration.style.display = 'flex';
-            // Force reset
-            document.getElementById('arcade-wrap').style.display = 'none';
-            document.getElementById('game-over').style.display = 'none';
+            // Force reset of game state
+            document.getElementById('arcade-wrap').classList.add('hidden');
+            document.getElementById('game-over').classList.add('hidden');
             document.getElementById('game-selection').style.display = 'block';
         });
     }
 
-    // --- INPUT ---
+    // --- GAME INPUT ---
     window.addEventListener('keydown', (e) => {
         if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
         keys[e.code] = true;
@@ -85,7 +82,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     window.addEventListener('keyup', (e) => keys[e.code] = false);
 
-    // TOUCH
     ['up','down','left','right'].forEach(dir => {
         const btn = document.getElementById('d-'+dir);
         if(!btn) return;
@@ -97,8 +93,6 @@ document.addEventListener('DOMContentLoaded', () => {
             keys[keyMap[dir]] = true; 
             if(dir === 'left') touchState.left = true;
             if(dir === 'right') touchState.right = true;
-            if(dir === 'up') touchState.up = true;
-            if(dir === 'down') touchState.down = true;
             if(activeGame === 'pacman') pacNextDir = pacCode; 
         };
         const release = (e) => { 
@@ -106,8 +100,6 @@ document.addEventListener('DOMContentLoaded', () => {
             keys[keyMap[dir]] = false; 
             if(dir === 'left') touchState.left = false;
             if(dir === 'right') touchState.right = false;
-            if(dir === 'up') touchState.up = false;
-            if(dir === 'down') touchState.down = false;
         };
 
         btn.addEventListener('touchstart', press);
@@ -120,27 +112,22 @@ document.addEventListener('DOMContentLoaded', () => {
 let gameLoopId;
 let activeGame = null;
 let keys = {};
-let touchState = { left: false, right: false, up: false, down: false, jump: false };
+let touchState = { left: false, right: false };
 let pacNextDir = 0;
 
 function resetToMenu() {
     if(gameLoopId) cancelAnimationFrame(gameLoopId);
     activeGame = null;
-    document.getElementById('arcade-wrap').style.display = 'none';
+    document.getElementById('arcade-wrap').classList.add('hidden');
     document.getElementById('game-selection').style.display = 'block';
-    document.getElementById('game-over').style.display = 'none';
+    document.getElementById('game-over').classList.add('hidden');
     document.getElementById('dpad').classList.add('hidden');
-}
-
-function restartLevel() {
-    if(activeGame) initGame(activeGame);
 }
 
 function initGame(type) {
     document.getElementById('game-selection').style.display = 'none';
-    document.getElementById('arcade-wrap').style.display = 'flex';
     document.getElementById('arcade-wrap').classList.remove('hidden');
-    document.getElementById('game-over').style.display = 'none';
+    document.getElementById('game-over').classList.add('hidden');
     document.getElementById('dpad').classList.add('hidden');
 
     const canvas = document.getElementById('gameCanvas');
@@ -204,8 +191,8 @@ function initGame(type) {
                     if(g.dir===0) g.x++; if(g.dir===1) g.y--; if(g.dir===2) g.x--; if(g.dir===3) g.y++;
                     if(g.x<0) g.x=map[0].length-1; if(g.x>=map[0].length) g.x=0; if(g.y<0) g.y=map.length-1; if(g.y>=map.length) g.y=0;
                     if(g.x===player.x && g.y===player.y) {
-                        if(g.vulnerable) { g.x=10; g.y=8; g.vulnerable=false; document.getElementById('game-over').style.display='block'; }
-                        else { alive=false; document.getElementById('game-over').style.display='block'; }
+                        if(g.vulnerable) { g.x=10; g.y=8; g.vulnerable=false; document.getElementById('game-over').classList.remove('hidden'); }
+                        else { alive=false; document.getElementById('game-over').classList.remove('hidden'); }
                     }
                 });
             }
@@ -241,10 +228,10 @@ function initGame(type) {
             player.x=Math.max(0,Math.min(canvas.width-40,player.x));
 
             if(frame%4===0) { let hitEdge=false; invaders.forEach(inv=>{inv.x+=(2*invDir); if(inv.x>canvas.width-30 || inv.x<0) hitEdge=true;}); if(hitEdge) { invDir*=-1; invaders.forEach(inv=>inv.y+=10); } }
-            ctx.fillStyle='red'; ctx.font='24px Arial'; invaders.forEach(inv=>{ctx.fillText(inv.t,inv.x,inv.y); if(inv.y>380) {alive=false; document.getElementById('game-over').style.display='block';}});
+            ctx.fillStyle='red'; ctx.font='24px Arial'; invaders.forEach(inv=>{ctx.fillText(inv.t,inv.x,inv.y); if(inv.y>380) {alive=false; document.getElementById('game-over').classList.remove('hidden');}});
             bullets.forEach((b,i)=>{b.y-=7; ctx.fillText('❤️',b.x,b.y); invaders.forEach((inv,ii)=>{if(b.x>inv.x && b.x<inv.x+30 && b.y<inv.y && b.y>inv.y-20) {invaders.splice(ii,1); bullets.splice(i,1); document.getElementById('score').innerText=(score+=100);}});});
             ctx.fillStyle='#00ff00'; ctx.fillRect(player.x,420,40,20); ctx.fillRect(player.x+15,410,10,10);
-            if(invaders.length===0) { document.getElementById('game-over').querySelector('h2').innerText="YOU WIN!"; alive=false; document.getElementById('game-over').style.display='block'; }
+            if(invaders.length===0) { document.getElementById('game-over').querySelector('h2').innerText="YOU WIN!"; alive=false; document.getElementById('game-over').classList.remove('hidden'); }
             gameLoopId=requestAnimationFrame(invLoop);
         }
         invLoop();
@@ -268,7 +255,7 @@ function initGame(type) {
             world.forEach((w,i)=>{
                 w.y+=w.speed; if(w.isCar && w.y<0) w.x=Math.max(120, Math.min(300, w.x)); 
                 ctx.font='40px Arial'; ctx.fillText(w.hit?'💖':w.t,w.x,w.y); 
-                if(w.isCar && Math.hypot(player.x-w.x,player.y-w.y)<30) {alive=false; document.getElementById('game-over').style.display='block';} if(w.y>500) world.splice(i,1);
+                if(w.isCar && Math.hypot(player.x-w.x,player.y-w.y)<30) {alive=false; document.getElementById('game-over').classList.remove('hidden');} if(w.y>500) world.splice(i,1);
             });
             hearts.forEach((h,i)=>{h.x+=h.vx; h.y+=h.vy; ctx.font='20px Arial'; ctx.fillText('❤️',h.x,h.y); world.forEach(w=>{if(w.t==='🏠'&&!w.hit&&Math.hypot(h.x-w.x,h.y-w.y)<40){w.hit=true;document.getElementById('score').innerText=(score+=50);}});});
             ctx.font='40px Arial'; ctx.fillText('🚲',player.x,player.y);
