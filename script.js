@@ -6,6 +6,11 @@ let pacNextDir = 0;
 let gameLevel = 1;
 let currentScore = 0;
 
+// Variables to hold the touch functions so we can remove them later
+let handleTouchStart = null;
+let handleTouchMove = null;
+let handleTouchEnd = null;
+
 // --- GLOBAL FUNCTIONS ---
 
 function resetToMenu() {
@@ -15,6 +20,13 @@ function resetToMenu() {
     document.getElementById('game-selection').style.display = 'block';
     document.getElementById('game-over').style.display = 'none';
     document.getElementById('dpad').classList.add('hidden');
+    
+    // Clean up old listeners
+    const canvas = document.getElementById('gameCanvas');
+    if (handleTouchStart) canvas.removeEventListener('touchstart', handleTouchStart);
+    if (handleTouchMove) canvas.removeEventListener('touchmove', handleTouchMove);
+    if (handleTouchEnd) canvas.removeEventListener('touchend', handleTouchEnd);
+    
     gameLevel = 1;
     currentScore = 0;
 }
@@ -64,13 +76,11 @@ function initGame(type) {
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     
-    // RESET LISTENERS (To prevent double firing)
-    canvas.ontouchstart = null;
-    canvas.ontouchmove = null;
-    canvas.ontouchend = null;
-    window.onkeydown = null;
-    window.onkeyup = null;
-
+    // 1. CLEANUP OLD LISTENERS
+    if (handleTouchStart) canvas.removeEventListener('touchstart', handleTouchStart);
+    if (handleTouchMove) canvas.removeEventListener('touchmove', handleTouchMove);
+    if (handleTouchEnd) canvas.removeEventListener('touchend', handleTouchEnd);
+    
     if(gameLoopId) cancelAnimationFrame(gameLoopId);
     activeGame = type;
     
@@ -87,24 +97,31 @@ function initGame(type) {
     // --- PAC-MAN ---
     if (type === 'pacman') {
         canvas.width = 336; canvas.height = 380;
-        document.getElementById('dpad').classList.remove('hidden'); // Show D-Pad for Pacman
+        document.getElementById('dpad').classList.remove('hidden');
         
-        // SWIPE LOGIC
+        // SWIPE LOGIC FOR PACMAN
         let tsX = 0, tsY = 0;
-        canvas.ontouchstart = (e) => { tsX = e.touches[0].clientX; tsY = e.touches[0].clientY; e.preventDefault(); };
-        canvas.ontouchend = (e) => {
+        handleTouchStart = (e) => { 
+            e.preventDefault(); 
+            tsX = e.touches[0].clientX; 
+            tsY = e.touches[0].clientY; 
+        };
+        handleTouchEnd = (e) => {
+            e.preventDefault(); 
             let teX = e.changedTouches[0].clientX;
             let teY = e.changedTouches[0].clientY;
             let dx = teX - tsX;
             let dy = teY - tsY;
             if(Math.abs(dx) > Math.abs(dy)) {
-                if(dx > 0) pacNextDir = 0; // Right
-                else pacNextDir = 2; // Left
+                if(dx > 0) pacNextDir = 0; else pacNextDir = 2;
             } else {
-                if(dy > 0) pacNextDir = 3; // Down
-                else pacNextDir = 1; // Up
+                if(dy > 0) pacNextDir = 3; else pacNextDir = 1;
             }
         };
+        
+        // Add listeners with passive: false for iOS
+        canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+        canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
 
         const TILE = 16;
         let map = [
@@ -120,14 +137,11 @@ function initGame(type) {
         let player = { x: 10, y: 14, dir: 0 };
         let ghosts = [ { x: 9, y: 8, color: 'red' }, { x: 10, y: 8, color: 'pink' }, { x: 11, y: 8, color: 'cyan' } ];
         let dotsRemaining = 0;
-        
         for(let r=0;r<map.length;r++) for(let c=0;c<map[r].length;c++) if(map[r][c]===0 || map[r][c]===8) dotsRemaining++;
 
         function pacLoop() {
             if(!alive) return;
             frame++;
-            
-            // D-Pad Touch Controls override
             if (keys['ArrowUp']) pacNextDir = 1;
             if (keys['ArrowDown']) pacNextDir = 3;
             if (keys['ArrowLeft']) pacNextDir = 2;
@@ -145,7 +159,6 @@ function initGame(type) {
                 let dx=0, dy=0; 
                 if(pacNextDir===0) dx=1; if(pacNextDir===1) dy=-1; if(pacNextDir===2) dx=-1; if(pacNextDir===3) dy=1;
                 let nextX=player.x+dx, nextY=player.y+dy;
-                
                 if(nextX<0) nextX=map[0].length-1; if(nextX>=map[0].length) nextX=0; 
                 if(nextY<0) nextY=map.length-1; if(nextY>=map.length) nextY=0;
                 
@@ -192,25 +205,28 @@ function initGame(type) {
         canvas.width = 340; canvas.height = 450;
         let player = { x: 150, w: 40, h: 20 }, bullets = [], invaders = [], invDir = 1;
         let rows = Math.min(6, 2 + gameLevel);
-        
         for(let r=0; r<rows; r++) for(let c=0; c<6; c++) invaders.push({ x: 30+c*45, y: 30+r*35, t: r===0?'🐙':'👾' });
         
         function fire() { bullets.push({ x: player.x+15, y: 400 }); }
         
-        // DIRECT DRAG AND TAP TO FIRE
-        canvas.ontouchmove = (e) => {
+        // DIRECT DRAG FOR INVADERS
+        handleTouchMove = (e) => {
             e.preventDefault();
             let rect = canvas.getBoundingClientRect();
-            let touchX = e.touches[0].clientX - rect.left;
-            player.x = touchX - 20; // Center ship
+            // Map touch X to canvas coordinate
+            let scaleX = canvas.width / rect.width;
+            let touchX = (e.touches[0].clientX - rect.left) * scaleX;
+            player.x = touchX - 20; 
         };
-        canvas.ontouchstart = (e) => { e.preventDefault(); fire(); };
+        handleTouchStart = (e) => { e.preventDefault(); fire(); };
+        
+        canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+        canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
 
         function invLoop() {
             if(!alive) return; frame++;
             ctx.fillStyle='#000'; ctx.fillRect(0,0,canvas.width,canvas.height);
             
-            // Key Support
             if(keys['ArrowLeft']) player.x-=5; 
             if(keys['ArrowRight']) player.x+=5; 
             if(keys['Space'] && frame%10===0) fire();
@@ -254,14 +270,18 @@ function initGame(type) {
         let distance = 0;
         let goal = 1000 + (gameLevel * 500);
 
-        // DIRECT DRAG AND TAP TO THROW
-        canvas.ontouchmove = (e) => {
+        // DIRECT DRAG FOR PAPERBOY
+        handleTouchMove = (e) => {
             e.preventDefault();
             let rect = canvas.getBoundingClientRect();
-            let touchX = e.touches[0].clientX - rect.left;
+            let scaleX = canvas.width / rect.width;
+            let touchX = (e.touches[0].clientX - rect.left) * scaleX;
             player.x = touchX;
         };
-        canvas.ontouchstart = (e) => { e.preventDefault(); hearts.push({x:player.x+20,y:player.y,vx:-5,vy:-5}); };
+        handleTouchStart = (e) => { e.preventDefault(); hearts.push({x:player.x+20,y:player.y,vx:-5,vy:-5}); };
+
+        canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+        canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
 
         function pbLoop() {
             if(!alive) return; frame++;
@@ -271,7 +291,6 @@ function initGame(type) {
             ctx.fillStyle='#555'; ctx.beginPath(); ctx.moveTo(100,0); ctx.lineTo(340,0); ctx.lineTo(340,450); ctx.lineTo(100,450); ctx.fill(); 
             ctx.fillStyle='#777'; ctx.fillRect(80,0,20,450);
             
-            // Key Support
             if(keys['ArrowLeft']) player.x-=5; 
             if(keys['ArrowRight']) player.x+=5; 
             if(keys['Space'] && frame%10===0) hearts.push({x:player.x+20,y:player.y,vx:-5,vy:-5});
@@ -374,17 +393,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ON-SCREEN BUTTONS (TOUCH) - For Pac-Man
     ['up','down','left','right'].forEach(dir => {
         const btn = document.getElementById('d-'+dir);
         if(!btn) return;
         
-        const pacCode = {up:1, down:3, left:2, right:0}[dir];
-        
         const press = (e) => {
             e.preventDefault();
-            keys['Arrow'+dir.charAt(0).toUpperCase() + dir.slice(1)] = true; // Map to keys
-            if(activeGame === 'pacman') pacNextDir = pacCode; 
+            keys['Arrow'+dir.charAt(0).toUpperCase() + dir.slice(1)] = true; 
         };
         const release = (e) => { 
             e.preventDefault(); 
