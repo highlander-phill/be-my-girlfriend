@@ -1,23 +1,26 @@
-// --- GLOBAL VARIABLES (Must be outside to be seen by HTML) ---
+// --- GLOBAL GAME VARIABLES (Top of file for safety) ---
 let gameLoopId;
 let activeGame = null;
 let keys = {};
 let touchState = { left: false, right: false, up: false, down: false };
 let pacNextDir = 0;
 
-// --- GLOBAL FUNCTIONS (Attached to window so HTML onclick works) ---
+// --- GLOBAL GAME FUNCTIONS ---
 
 function resetToMenu() {
     if(gameLoopId) cancelAnimationFrame(gameLoopId);
     activeGame = null;
+    
+    // Hide Game
     document.getElementById('arcade-wrap').classList.add('hidden');
     document.getElementById('arcade-wrap').style.display = 'none';
     
+    // Show Menu
     document.getElementById('game-selection').style.display = 'block';
     
+    // Hide Overlays
     document.getElementById('game-over').classList.add('hidden');
     document.getElementById('game-over').style.display = 'none';
-    
     document.getElementById('dpad').classList.add('hidden');
 }
 
@@ -26,19 +29,21 @@ function restartLevel() {
 }
 
 function initGame(type) {
-    // Hide Menu, Show Game
+    // 1. UI Switching
     document.getElementById('game-selection').style.display = 'none';
-    document.getElementById('arcade-wrap').classList.remove('hidden');
-    document.getElementById('arcade-wrap').style.display = 'flex';
+    
+    const arcadeWrap = document.getElementById('arcade-wrap');
+    arcadeWrap.classList.remove('hidden');
+    arcadeWrap.style.display = 'flex'; // FORCE FLEX COLUMN
     
     document.getElementById('game-over').classList.add('hidden');
     document.getElementById('game-over').style.display = 'none';
-    
     document.getElementById('dpad').classList.add('hidden');
 
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     
+    // 2. Reset Loop
     if(gameLoopId) cancelAnimationFrame(gameLoopId);
     activeGame = type;
     let score = 0;
@@ -46,7 +51,7 @@ function initGame(type) {
     let frame = 0;
     let alive = true;
 
-    // --- PAC-MAN ---
+    // --- PAC-MAN ENGINE ---
     if (type === 'pacman') {
         canvas.width = 336; canvas.height = 380;
         document.getElementById('dpad').classList.remove('hidden');
@@ -97,8 +102,8 @@ function initGame(type) {
                     if(g.dir===0) g.x++; if(g.dir===1) g.y--; if(g.dir===2) g.x--; if(g.dir===3) g.y++;
                     if(g.x<0) g.x=map[0].length-1; if(g.x>=map[0].length) g.x=0; if(g.y<0) g.y=map.length-1; if(g.y>=map.length) g.y=0;
                     if(g.x===player.x && g.y===player.y) {
-                        if(g.vulnerable) { g.x=10; g.y=8; g.vulnerable=false; document.getElementById('game-over').style.display='block'; }
-                        else { alive=false; document.getElementById('game-over').style.display='block'; }
+                        if(g.vulnerable) { g.x=10; g.y=8; g.vulnerable=false; document.getElementById('game-over').classList.remove('hidden'); document.getElementById('game-over').style.display='block'; }
+                        else { alive=false; document.getElementById('game-over').classList.remove('hidden'); document.getElementById('game-over').style.display='block'; }
                     }
                 });
             }
@@ -123,21 +128,29 @@ function initGame(type) {
         let player = { x: 150, w: 40, h: 20 }, bullets = [], invaders = [], invDir = 1;
         for(let r=0; r<4; r++) for(let c=0; c<6; c++) invaders.push({ x: 30+c*45, y: 30+r*35, t: r===0?'🐙':'👾' });
         function fire() { bullets.push({ x: player.x+15, y: 400 }); }
-        canvas.addEventListener('touchstart', (e)=>{e.preventDefault();fire();}); 
-        canvas.addEventListener('touchmove', (e)=>{e.preventDefault();player.x=e.touches[0].clientX-canvas.getBoundingClientRect().left-20;}); 
-        window.addEventListener('keydown', (e)=>{if(e.code==='Space'&&alive&&type==='invaders')fire();});
+        
+        // Touch to fire for invaders
+        canvas.ontouchstart = (e) => { e.preventDefault(); fire(); };
+        window.onkeydown = (e) => { if(e.code==='Space'&&alive) fire(); };
+
         function invLoop() {
             if(!alive) return; frame++;
             ctx.fillStyle='#000'; ctx.fillRect(0,0,canvas.width,canvas.height);
+            
             if(keys['ArrowLeft'] || keys['KeyA'] || touchState.left) player.x-=5; 
             if(keys['ArrowRight'] || keys['KeyD'] || touchState.right) player.x+=5; 
             player.x=Math.max(0,Math.min(canvas.width-40,player.x));
 
             if(frame%4===0) { let hitEdge=false; invaders.forEach(inv=>{inv.x+=(2*invDir); if(inv.x>canvas.width-30 || inv.x<0) hitEdge=true;}); if(hitEdge) { invDir*=-1; invaders.forEach(inv=>inv.y+=10); } }
-            ctx.fillStyle='red'; ctx.font='24px Arial'; invaders.forEach(inv=>{ctx.fillText(inv.t,inv.x,inv.y); if(inv.y>380) {alive=false; document.getElementById('game-over').style.display='block';}});
+            
+            ctx.fillStyle='red'; ctx.font='24px Arial'; 
+            invaders.forEach(inv=>{ctx.fillText(inv.t,inv.x,inv.y); if(inv.y>380) {alive=false; document.getElementById('game-over').classList.remove('hidden'); document.getElementById('game-over').style.display='block';}});
+            
             bullets.forEach((b,i)=>{b.y-=7; ctx.fillText('❤️',b.x,b.y); invaders.forEach((inv,ii)=>{if(b.x>inv.x && b.x<inv.x+30 && b.y<inv.y && b.y>inv.y-20) {invaders.splice(ii,1); bullets.splice(i,1); document.getElementById('score').innerText=(score+=100);}});});
+            
             ctx.fillStyle='#00ff00'; ctx.fillRect(player.x,420,40,20); ctx.fillRect(player.x+15,410,10,10);
-            if(invaders.length===0) { document.getElementById('game-over').querySelector('h2').innerText="YOU WIN!"; alive=false; document.getElementById('game-over').style.display='block'; }
+            
+            if(invaders.length===0) { document.getElementById('game-over').querySelector('h2').innerText="YOU WIN!"; alive=false; document.getElementById('game-over').classList.remove('hidden'); document.getElementById('game-over').style.display='block'; }
             gameLoopId=requestAnimationFrame(invLoop);
         }
         invLoop();
@@ -146,13 +159,22 @@ function initGame(type) {
     } else if (type === 'paperboy') {
         canvas.width = 340; canvas.height = 450;
         let player = { x: 170, y: 350 }, world = [], hearts = [];
-        canvas.addEventListener('touchmove', e=>{e.preventDefault();player.x=e.touches[0].clientX-canvas.getBoundingClientRect().left-20;}, {passive:false}); canvas.addEventListener('touchstart', e=>{e.preventDefault();hearts.push({x:player.x+20,y:player.y,vx:-5,vy:-5});}); window.addEventListener('keydown', e=>{if(e.code==='Space'&&alive&&type==='paperboy')hearts.push({x:player.x+20,y:player.y,vx:-5,vy:-5});});
+        
+        canvas.ontouchstart = (e) => { e.preventDefault(); hearts.push({x:player.x+20,y:player.y,vx:-5,vy:-5}); };
+        window.onkeydown = (e) => { 
+            if(e.code==='Space'&&alive) hearts.push({x:player.x+20,y:player.y,vx:-5,vy:-5}); 
+            if(['ArrowLeft','ArrowRight'].includes(e.code)) keys[e.code]=true;
+        };
+        window.onkeyup = (e) => { if(['ArrowLeft','ArrowRight'].includes(e.code)) keys[e.code]=false; };
+
         function pbLoop() {
             if(!alive) return; frame++;
             ctx.fillStyle='#2d5a27'; ctx.fillRect(0,0,340,450); ctx.fillStyle='#555'; ctx.beginPath(); ctx.moveTo(100,0); ctx.lineTo(340,0); ctx.lineTo(340,450); ctx.lineTo(100,450); ctx.fill(); ctx.fillStyle='#777'; ctx.fillRect(80,0,20,450);
+            
             if(keys['ArrowLeft'] || keys['KeyA'] || touchState.left) player.x-=5; 
             if(keys['ArrowRight'] || keys['KeyD'] || touchState.right) player.x+=5; 
             player.x=Math.max(100,Math.min(300,player.x));
+            
             if(frame%40===0) { 
                 let isHouse=Math.random()>0.4; 
                 let spawnX = isHouse ? (Math.random() * 60) : (120 + Math.random() * 200); 
@@ -161,7 +183,7 @@ function initGame(type) {
             world.forEach((w,i)=>{
                 w.y+=w.speed; if(w.isCar && w.y<0) w.x=Math.max(120, Math.min(300, w.x)); 
                 ctx.font='40px Arial'; ctx.fillText(w.hit?'💖':w.t,w.x,w.y); 
-                if(w.isCar && Math.hypot(player.x-w.x,player.y-w.y)<30) {alive=false; document.getElementById('game-over').style.display='block';} if(w.y>500) world.splice(i,1);
+                if(w.isCar && Math.hypot(player.x-w.x,player.y-w.y)<30) {alive=false; document.getElementById('game-over').classList.remove('hidden'); document.getElementById('game-over').style.display='block';} if(w.y>500) world.splice(i,1);
             });
             hearts.forEach((h,i)=>{h.x+=h.vx; h.y+=h.vy; ctx.font='20px Arial'; ctx.fillText('❤️',h.x,h.y); world.forEach(w=>{if(w.t==='🏠'&&!w.hit&&Math.hypot(h.x-w.x,h.y-w.y)<40){w.hit=true;document.getElementById('score').innerText=(score+=50);}});});
             ctx.font='40px Arial'; ctx.fillText('🚲',player.x,player.y);
@@ -171,7 +193,7 @@ function initGame(type) {
     }
 }
 
-// --- DOM READY HANDLER (Only for page setup) ---
+// --- DOM LOAD ---
 document.addEventListener('DOMContentLoaded', () => {
     // UI ELEMENTS
     const envWrap = document.getElementById('envelope-wrap');
@@ -179,6 +201,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const paper = document.getElementById('main-paper');
     const area = document.getElementById('actionArea');
     const no = document.getElementById('noBtn');
+    
+    // CONTRACT
     const termsModal = document.getElementById('terms-modal');
     const termsCheck = document.getElementById('terms-checkbox');
     const acceptTermsBtn = document.getElementById('acceptTermsBtn');
@@ -186,8 +210,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const celebration = document.getElementById('celebration');
     
     // STARTUP
-    termsModal.classList.add('hidden');
-    celebration.classList.add('hidden');
+    if(termsModal) termsModal.classList.add('hidden');
+    if(celebration) celebration.style.display = 'none'; 
     if(dateSpan) dateSpan.innerText = new Date().toLocaleDateString();
 
     // 1. OPEN ENVELOPE
@@ -225,7 +249,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 500);
     });
 
-    // 4. TERMS -> GAME MENU
+    // 4. TERMS -> GAME
     if(termsCheck) {
         termsCheck.addEventListener('change', (e) => {
             if(e.target.checked) acceptTermsBtn.classList.remove('disabled');
@@ -236,25 +260,12 @@ document.addEventListener('DOMContentLoaded', () => {
         acceptTermsBtn.addEventListener('click', () => {
             termsModal.classList.add('hidden');
             celebration.classList.remove('hidden');
-            celebration.style.display = 'flex';
+            celebration.style.display = 'flex'; // This triggers the CSS flex-column
             resetToMenu();
         });
     }
 
-    // --- INPUT ---
-    window.addEventListener('keydown', (e) => {
-        if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
-        keys[e.code] = true;
-        if(activeGame === 'pacman') {
-            if(e.code === 'ArrowUp') pacNextDir = 1;
-            if(e.code === 'ArrowDown') pacNextDir = 3;
-            if(e.code === 'ArrowLeft') pacNextDir = 2;
-            if(e.code === 'ArrowRight') pacNextDir = 0;
-        }
-    });
-    window.addEventListener('keyup', (e) => keys[e.code] = false);
-
-    // TOUCH
+    // TOUCH HANDLERS FOR DPAD
     ['up','down','left','right'].forEach(dir => {
         const btn = document.getElementById('d-'+dir);
         if(!btn) return;
