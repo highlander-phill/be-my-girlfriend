@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // STARTUP
     termsModal.classList.add('hidden');
-    celebration.style.display = 'none'; 
+    celebration.classList.add('hidden');
     if(dateSpan) dateSpan.innerText = new Date().toLocaleDateString();
 
     // 1. OPEN ENVELOPE
@@ -63,11 +63,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if(acceptTermsBtn) {
         acceptTermsBtn.addEventListener('click', () => {
             termsModal.classList.add('hidden');
+            // Remove hidden class from celebration
+            celebration.classList.remove('hidden');
             celebration.style.display = 'flex';
-            // FORCE RESET GAME UI
-            document.getElementById('arcade-wrap').style.display = 'none';
-            document.getElementById('game-over').style.display = 'none';
-            document.getElementById('game-selection').style.display = 'block';
+            // Force reset of game over screens
+            document.getElementById('game-over').classList.add('hidden');
+            document.getElementById('arcade-wrap').classList.add('hidden');
+            document.getElementById('game-selection').classList.remove('hidden');
         });
     }
 
@@ -134,9 +136,9 @@ let pacNextDir = 0;
 function resetToMenu() {
     if(gameLoopId) cancelAnimationFrame(gameLoopId);
     activeGame = null;
-    document.getElementById('arcade-wrap').style.display = 'none'; // Force hide
-    document.getElementById('game-selection').style.display = 'block'; // Force show
-    document.getElementById('game-over').style.display = 'none'; // Force hide
+    document.getElementById('arcade-wrap').classList.add('hidden');
+    document.getElementById('game-selection').classList.remove('hidden');
+    document.getElementById('game-over').classList.add('hidden');
     document.getElementById('jump-btn').classList.add('hidden');
     document.getElementById('dpad').classList.add('hidden');
 }
@@ -146,10 +148,9 @@ function restartLevel() {
 }
 
 function initGame(type) {
-    document.getElementById('game-selection').style.display = 'none'; // Hide menu
-    document.getElementById('arcade-wrap').style.display = 'flex'; // Show game
+    document.getElementById('game-selection').classList.add('hidden');
     document.getElementById('arcade-wrap').classList.remove('hidden');
-    document.getElementById('game-over').style.display = 'none'; // Ensure no game over
+    document.getElementById('game-over').classList.add('hidden');
     document.getElementById('dpad').classList.add('hidden');
     document.getElementById('jump-btn').classList.add('hidden');
 
@@ -192,9 +193,10 @@ function initGame(type) {
             if(!alive) return;
             frame++;
             
+            // CONTROLS - FIXED
             player.vx = 0;
             if(keys['ArrowRight'] || keys['KeyD'] || touchState.right) player.vx = SPEED;
-            if(keys['ArrowLeft'] || keys['KeyA'] || touchState.left) player.vx = -SPEED;
+            else if(keys['ArrowLeft'] || keys['KeyA'] || touchState.left) player.vx = -SPEED;
             
             if((keys['Space'] || touchState.jump) && player.grounded) { 
                 player.vy = JUMP; player.grounded = false; 
@@ -229,10 +231,7 @@ function initGame(type) {
                 }
             });
 
-            if(player.y > 400) { 
-                alive = false; 
-                document.getElementById('game-over').style.display = 'block'; 
-            }
+            if(player.y > 400) { alive = false; document.getElementById('game-over').classList.remove('hidden'); }
             
             items.forEach((b, i) => {
                 if(b.t === 'heart' && checkCol(player, b)) {
@@ -242,8 +241,7 @@ function initGame(type) {
                 if(b.t === 'enemy') {
                     b.x += b.vx;
                     if(checkCol(player, b)) {
-                        alive = false; 
-                        document.getElementById('game-over').style.display = 'block'; 
+                        alive = false; document.getElementById('game-over').classList.remove('hidden');
                     }
                 }
             });
@@ -264,7 +262,7 @@ function initGame(type) {
         }
         marioLoop();
 
-    // --- PAC-MAN ---
+    // --- PAC-MAN (Retained) ---
     } else if (type === 'pacman') {
         canvas.width = 336; canvas.height = 380;
         document.getElementById('dpad').classList.remove('hidden');
@@ -315,8 +313,8 @@ function initGame(type) {
                     if(g.dir===0) g.x++; if(g.dir===1) g.y--; if(g.dir===2) g.x--; if(g.dir===3) g.y++;
                     if(g.x<0) g.x=map[0].length-1; if(g.x>=map[0].length) g.x=0; if(g.y<0) g.y=map.length-1; if(g.y>=map.length) g.y=0;
                     if(g.x===player.x && g.y===player.y) {
-                        if(g.vulnerable) { g.x=10; g.y=8; g.vulnerable=false; document.getElementById('game-over').style.display='block'; }
-                        else { alive=false; document.getElementById('game-over').style.display='block'; }
+                        if(g.vulnerable) { g.x=10; g.y=8; g.vulnerable=false; document.getElementById('game-over').classList.remove('hidden'); }
+                        else { alive=false; document.getElementById('game-over').classList.remove('hidden'); }
                     }
                 });
             }
@@ -335,7 +333,7 @@ function initGame(type) {
         }
         pacLoop();
 
-    // --- INVADERS ---
+    // --- INVADERS & PAPERBOY (Retained) ---
     } else if (type === 'invaders') {
         canvas.width = 340; canvas.height = 450;
         let player = { x: 150, w: 40, h: 20 }, bullets = [], invaders = [], invDir = 1;
@@ -352,15 +350,13 @@ function initGame(type) {
             player.x=Math.max(0,Math.min(canvas.width-40,player.x));
 
             if(frame%4===0) { let hitEdge=false; invaders.forEach(inv=>{inv.x+=(2*invDir); if(inv.x>canvas.width-30 || inv.x<0) hitEdge=true;}); if(hitEdge) { invDir*=-1; invaders.forEach(inv=>inv.y+=10); } }
-            ctx.fillStyle='red'; ctx.font='24px Arial'; invaders.forEach(inv=>{ctx.fillText(inv.t,inv.x,inv.y); if(inv.y>380) {alive=false; document.getElementById('game-over').style.display='block';}});
+            ctx.fillStyle='red'; ctx.font='24px Arial'; invaders.forEach(inv=>{ctx.fillText(inv.t,inv.x,inv.y); if(inv.y>380) {alive=false; document.getElementById('game-over').classList.remove('hidden');}});
             bullets.forEach((b,i)=>{b.y-=7; ctx.fillText('❤️',b.x,b.y); invaders.forEach((inv,ii)=>{if(b.x>inv.x && b.x<inv.x+30 && b.y<inv.y && b.y>inv.y-20) {invaders.splice(ii,1); bullets.splice(i,1); document.getElementById('score').innerText=(score+=100);}});});
             ctx.fillStyle='#00ff00'; ctx.fillRect(player.x,420,40,20); ctx.fillRect(player.x+15,410,10,10);
-            if(invaders.length===0) { document.getElementById('game-over').querySelector('h2').innerText="YOU WIN!"; alive=false; document.getElementById('game-over').style.display='block'; }
+            if(invaders.length===0) { document.getElementById('game-over').querySelector('h2').innerText="YOU WIN!"; alive=false; document.getElementById('game-over').classList.remove('hidden'); }
             gameLoopId=requestAnimationFrame(invLoop);
         }
         invLoop();
-
-    // --- PAPERBOY ---
     } else if (type === 'paperboy') {
         canvas.width = 340; canvas.height = 450;
         let player = { x: 170, y: 350 }, world = [], hearts = [];
@@ -379,7 +375,7 @@ function initGame(type) {
             world.forEach((w,i)=>{
                 w.y+=w.speed; if(w.isCar && w.y<0) w.x=Math.max(120, Math.min(300, w.x)); 
                 ctx.font='40px Arial'; ctx.fillText(w.hit?'💖':w.t,w.x,w.y); 
-                if(w.isCar && Math.hypot(player.x-w.x,player.y-w.y)<30) {alive=false; document.getElementById('game-over').style.display='block';} if(w.y>500) world.splice(i,1);
+                if(w.isCar && Math.hypot(player.x-w.x,player.y-w.y)<30) {alive=false; document.getElementById('game-over').classList.remove('hidden');} if(w.y>500) world.splice(i,1);
             });
             hearts.forEach((h,i)=>{h.x+=h.vx; h.y+=h.vy; ctx.font='20px Arial'; ctx.fillText('❤️',h.x,h.y); world.forEach(w=>{if(w.t==='🏠'&&!w.hit&&Math.hypot(h.x-w.x,h.y-w.y)<40){w.hit=true;document.getElementById('score').innerText=(score+=50);}});});
             ctx.font='40px Arial'; ctx.fillText('🚲',player.x,player.y);
