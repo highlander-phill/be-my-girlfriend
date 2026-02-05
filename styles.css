@@ -25,30 +25,30 @@ body { font-family: 'Indie Flower', cursive; background: #222; overflow: hidden;
 .yes-btn { position: absolute; left: 50%; transform: translateX(-50%); background: #0984e3; color: white; border: none; padding: 12px 40px; border-radius: 50px; font-size: 1.6rem; cursor: pointer; z-index: 5; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
 .no-btn { background: #b2bec3; color: white; border: none; padding: 8px 15px; border-radius: 5px; position: absolute; top: 85px; left: 50%; transform: translateX(-50%); transition: all 0.1s ease; z-index: 6; cursor: pointer; }
 
-/* TERMS MODAL - FLEX-START (Fixes scrolling) */
+/* TERMS MODAL (FLEX CENTERED - SCROLL INTERNAL) */
 #terms-modal { 
-    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0; 
     background: rgba(0,0,0,0.9); 
     z-index: 9999; 
     display: flex; 
+    align-items: center; 
     justify-content: center; 
-    align-items: flex-start; /* THIS FORCES IT TO TOP */
-    overflow-y: scroll; 
-    -webkit-overflow-scrolling: touch; 
-    padding: 20px 10px;
+    padding: 20px;
 }
 #terms-modal.hidden { display: none !important; }
 
 .legal-paper { 
     background: #fff; 
-    padding: 25px; 
     width: 95%; 
-    max-width: 420px; 
+    max-width: 400px; 
     box-shadow: 0 10px 40px rgba(0,0,0,0.5); 
     font-family: 'Roboto', sans-serif; 
     position: relative; 
     border-radius: 4px; 
-    margin-bottom: 50px; 
+    max-height: 85vh; /* Max height is 85% of screen */
+    overflow-y: auto; /* Internal scroll if too tall */
+    -webkit-overflow-scrolling: touch;
+    padding: 25px;
 }
 
 .legal-header { border-bottom: 2px solid #333; margin-bottom: 20px; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
@@ -81,9 +81,6 @@ body { font-family: 'Indie Flower', cursive; background: #222; overflow: hidden;
 .dpad-row { display: flex; gap: 15px; }
 .d-btn { width: 50px; height: 50px; background: rgba(255,255,255,0.1); border: 1px solid #555; border-radius: 50%; color: white; font-size: 1.5rem; cursor: pointer; display: flex; justify-content: center; align-items: center;}
 .d-btn:active { background: rgba(0,255,0,0.3); }
-.action-btn { position: fixed; bottom: 30px; right: 20px; width: 80px; height: 80px; background: rgba(255, 0, 0, 0.4); border: 2px solid red; border-radius: 50%; color: white; font-weight: bold; font-family: sans-serif; cursor: pointer; z-index: 3000; }
-.action-btn:active { background: rgba(255,0,0,0.8); }
-@media (min-width: 800px) { .action-btn { display: none !important; } }
 #game-over { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); padding: 30px; border: 2px solid red; z-index: 2000; width: 320px; text-align: center; }
 .blink { animation: blink 1s infinite; }
 @keyframes blink { 50% { opacity: 0; } }

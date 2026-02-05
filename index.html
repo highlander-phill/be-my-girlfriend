@@ -39,6 +39,7 @@
                     <h2>RELATIONSHIP CONTRACT</h2>
                     <span class="doc-id">Doc ID: L0V3-2026-XOXO</span>
                 </div>
+                
                 <div class="terms-body">
                     <p><strong>1. Mutual Weirdness:</strong> The Parties promise to embrace each other's quirks, eccentricities, and arcade obsessions.</p>
                     <p><strong>2. The Road Trip Protocol:</strong> The Girlfriend agrees to be the primary provider of BOTH snacks and music for random road trips.</p>
@@ -47,6 +48,7 @@
                     <p><strong>5. Limited Tech Support:</strong> Phillip Anthony Simpson agrees to provide IT/Tech Support exclusively to immediate family members.</p>
                     <p><strong>6. The Cooking Protocol:</strong> The Parties agree to maintain kindness and patience, even when hungry or attempting to cook a complex meal together.</p>
                 </div>
+
                 <div class="legal-footer">
                     <div class="signature-section">
                         <p class="sign-label">Electronic Signature:</p>
@@ -70,7 +72,6 @@
                 <button class="menu-btn" onclick="initGame('paperboy')">PAPERBOY: LOVE DELIVERY</button>
                 <button class="menu-btn" onclick="initGame('pacman')">PAC-KRYSTLE: EX-HUNTER</button>
                 <button class="menu-btn" onclick="initGame('invaders')">SPACE INVADERS: DEFENSE</button>
-                <button class="menu-btn" onclick="initGame('mario')">SUPER PHILLIO BROS</button>
             </div>
             
             <div id="arcade-wrap" class="hidden" style="display: none;">
@@ -78,7 +79,9 @@
                     <span id="score-label">SCORE: <span id="score">0</span></span>
                     <button onclick="resetToMenu()" class="exit-btn">MENU</button>
                 </div>
+                
                 <canvas id="gameCanvas"></canvas>
+                
                 <div id="dpad" class="hidden">
                     <div class="dpad-row"><button class="d-btn" id="d-up">⬆️</button></div>
                     <div class="dpad-row">
@@ -87,7 +90,7 @@
                     </div>
                     <div class="dpad-row"><button class="d-btn" id="d-down">⬇️</button></div>
                 </div>
-                <button id="jump-btn" class="action-btn hidden">JUMP</button>
+                
                 <div id="game-over" class="hidden" style="display: none;">
                     <h2 class="blink" style="color:red; margin-bottom: 10px;">GAME OVER!</h2>
                     <p style="color: #00ff00; margin-bottom: 20px; font-family: monospace;">But don't worry,<br>you still get Phillip! 😉</p>
@@ -97,7 +100,7 @@
             </div>
         </div>
 
-        <div id="version-tag">v2.0 - FIX</div>
+        <div id="version-tag">v3.0 - NO MARIO</div>
     </div>
     <script src="script.js"></script>
 </body>

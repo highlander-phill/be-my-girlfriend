@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // STARTUP
     termsModal.classList.add('hidden');
-    celebration.style.display = 'none'; 
+    celebration.classList.add('hidden');
     if(dateSpan) dateSpan.innerText = new Date().toLocaleDateString();
 
     // 1. OPEN ENVELOPE
@@ -97,8 +97,6 @@ document.addEventListener('DOMContentLoaded', () => {
             keys[keyMap[dir]] = true; 
             if(dir === 'left') touchState.left = true;
             if(dir === 'right') touchState.right = true;
-            if(dir === 'up') touchState.up = true;
-            if(dir === 'down') touchState.down = true;
             if(activeGame === 'pacman') pacNextDir = pacCode; 
         };
         const release = (e) => { 
@@ -106,8 +104,6 @@ document.addEventListener('DOMContentLoaded', () => {
             keys[keyMap[dir]] = false; 
             if(dir === 'left') touchState.left = false;
             if(dir === 'right') touchState.right = false;
-            if(dir === 'up') touchState.up = false;
-            if(dir === 'down') touchState.down = false;
         };
 
         btn.addEventListener('touchstart', press);
@@ -115,21 +111,12 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.addEventListener('mousedown', press);
         btn.addEventListener('mouseup', release);
     });
-
-    const jumpBtn = document.getElementById('jump-btn');
-    if(jumpBtn) {
-        const h = (s) => { keys['Space'] = s; touchState.jump = s; };
-        jumpBtn.addEventListener('touchstart', (e)=>{e.preventDefault(); h(true);});
-        jumpBtn.addEventListener('touchend', (e)=>{e.preventDefault(); h(false);});
-        jumpBtn.addEventListener('mousedown', (e)=>{e.preventDefault(); h(true);});
-        jumpBtn.addEventListener('mouseup', (e)=>{e.preventDefault(); h(false);});
-    }
 });
 
 let gameLoopId;
 let activeGame = null;
 let keys = {};
-let touchState = { left: false, right: false, up: false, down: false, jump: false };
+let touchState = { left: false, right: false };
 let pacNextDir = 0;
 
 function resetToMenu() {
@@ -138,7 +125,6 @@ function resetToMenu() {
     document.getElementById('arcade-wrap').style.display = 'none';
     document.getElementById('game-selection').style.display = 'block';
     document.getElementById('game-over').style.display = 'none';
-    document.getElementById('jump-btn').classList.add('hidden');
     document.getElementById('dpad').classList.add('hidden');
 }
 
@@ -152,7 +138,6 @@ function initGame(type) {
     document.getElementById('arcade-wrap').classList.remove('hidden');
     document.getElementById('game-over').style.display = 'none';
     document.getElementById('dpad').classList.add('hidden');
-    document.getElementById('jump-btn').classList.add('hidden');
 
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
@@ -164,105 +149,8 @@ function initGame(type) {
     let frame = 0;
     let alive = true;
 
-    // --- MARIO ---
-    if (type === 'mario') {
-        canvas.width = 340; canvas.height = 400;
-        document.getElementById('dpad').classList.remove('hidden'); 
-        document.getElementById('jump-btn').classList.remove('hidden');
-        
-        let player = { x: 50, y: 300, w: 24, h: 24, vx: 0, vy: 0, grounded: false };
-        const GRAVITY = 0.6, JUMP = -11, SPEED = 4;
-        let items = [];
-        
-        for(let i=0; i<200; i+=40) items.push({x: i, y: 360, w: 40, h: 40, t: 'ground'}); 
-        for(let i=300; i<2000; i+=40) {
-            if(Math.random() > 0.2) items.push({x: i, y: 360, w: 40, h: 40, t: 'ground'});
-            if(Math.random() > 0.7) {
-                let h = 250 - Math.random()*50;
-                items.push({x: i, y: h, w: 40, h: 40, t: 'brick'});
-                if(Math.random()>0.5) items.push({x: i+10, y: h-30, w: 20, h: 20, t: 'heart'});
-            }
-            if(Math.random() > 0.9) items.push({x: i, y: 330, w: 20, h: 20, t: 'enemy', vx: -1});
-        }
-
-        function checkCol(p, b) {
-            return (p.x < b.x + b.w && p.x + p.w > b.x && p.y < b.y + b.h && p.y + p.h > b.y);
-        }
-
-        function marioLoop() {
-            if(!alive) return;
-            frame++;
-            
-            player.vx = 0;
-            if(keys['ArrowRight'] || keys['KeyD'] || touchState.right) player.vx = SPEED;
-            if(keys['ArrowLeft'] || keys['KeyA'] || touchState.left) player.vx = -SPEED;
-            
-            if((keys['Space'] || touchState.jump) && player.grounded) { 
-                player.vy = JUMP; player.grounded = false; 
-            }
-
-            player.x += player.vx;
-            if(player.x > 150) {
-                let shift = player.x - 150;
-                player.x = 150;
-                items.forEach(i => i.x -= shift);
-            }
-            player.x = Math.max(0, player.x);
-
-            items.forEach(b => {
-                if((b.t === 'ground' || b.t === 'brick') && checkCol(player, b)) {
-                    if(player.vx > 0) player.x = b.x - player.w;
-                    else if(player.vx < 0) player.x = b.x + b.w;
-                }
-            });
-
-            player.vy += GRAVITY;
-            player.y += player.vy;
-            player.grounded = false;
-
-            items.forEach(b => {
-                if((b.t === 'ground' || b.t === 'brick') && checkCol(player, b)) {
-                    if(player.vy > 0 && player.y < b.y) {
-                        player.y = b.y - player.h; player.vy = 0; player.grounded = true;
-                    } else if(player.vy < 0 && player.y > b.y) {
-                        player.y = b.y + b.h; player.vy = 0;
-                    }
-                }
-            });
-
-            if(player.y > 400) { alive = false; document.getElementById('game-over').style.display='block'; }
-            
-            items.forEach((b, i) => {
-                if(b.t === 'heart' && checkCol(player, b)) {
-                    items.splice(i, 1);
-                    document.getElementById('score').innerText = (score += 100);
-                }
-                if(b.t === 'enemy') {
-                    b.x += b.vx;
-                    if(checkCol(player, b)) {
-                        alive = false; document.getElementById('game-over').style.display='block';
-                    }
-                }
-            });
-
-            ctx.fillStyle = '#5c94fc'; ctx.fillRect(0,0,canvas.width,canvas.height);
-            items.forEach(b => {
-                if(b.x > -50 && b.x < 400) {
-                    if(b.t==='ground') { ctx.fillStyle='#e52521'; ctx.fillRect(b.x,b.y,b.w,b.h); ctx.strokeRect(b.x,b.y,b.w,b.h); }
-                    if(b.t==='brick') { ctx.fillStyle='#b84e00'; ctx.fillRect(b.x,b.y,b.w,b.h); ctx.strokeRect(b.x,b.y,b.w,b.h); }
-                    if(b.t==='heart') { ctx.font='20px Arial'; ctx.fillText('❤️', b.x, b.y+20); }
-                    if(b.t==='enemy') { ctx.font='20px Arial'; ctx.fillText('👾', b.x, b.y+20); }
-                }
-            });
-            ctx.fillStyle = '#ff0000'; ctx.fillRect(player.x, player.y, player.w, player.h);
-            ctx.fillStyle = '#0000ff'; ctx.fillRect(player.x, player.y+16, player.w, 8);
-            
-            gameLoopId = requestAnimationFrame(marioLoop);
-        }
-        marioLoop();
-
     // --- PAC-MAN ---
-    } else if (type === 'pacman') {
+    if (type === 'pacman') {
         canvas.width = 336; canvas.height = 380;
         document.getElementById('dpad').classList.remove('hidden');
         const TILE = 16;
