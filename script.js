@@ -1,24 +1,17 @@
-// --- GLOBAL GAME VARIABLES (Top of file for safety) ---
+// GLOBAL VARS
 let gameLoopId;
 let activeGame = null;
 let keys = {};
-let touchState = { left: false, right: false, up: false, down: false };
+let touchState = { left: false, right: false };
 let pacNextDir = 0;
 
-// --- GLOBAL GAME FUNCTIONS ---
-
+// GLOBAL FUNCTIONS
 function resetToMenu() {
     if(gameLoopId) cancelAnimationFrame(gameLoopId);
     activeGame = null;
-    
-    // Hide Game
     document.getElementById('arcade-wrap').classList.add('hidden');
     document.getElementById('arcade-wrap').style.display = 'none';
-    
-    // Show Menu
     document.getElementById('game-selection').style.display = 'block';
-    
-    // Hide Overlays
     document.getElementById('game-over').classList.add('hidden');
     document.getElementById('game-over').style.display = 'none';
     document.getElementById('dpad').classList.add('hidden');
@@ -29,21 +22,21 @@ function restartLevel() {
 }
 
 function initGame(type) {
-    // 1. UI Switching
+    // UI SWITCH
     document.getElementById('game-selection').style.display = 'none';
     
     const arcadeWrap = document.getElementById('arcade-wrap');
     arcadeWrap.classList.remove('hidden');
-    arcadeWrap.style.display = 'flex'; // FORCE FLEX COLUMN
+    arcadeWrap.style.display = 'block'; // FIXED: BLOCK LAYOUT
     
     document.getElementById('game-over').classList.add('hidden');
     document.getElementById('game-over').style.display = 'none';
+    
     document.getElementById('dpad').classList.add('hidden');
 
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     
-    // 2. Reset Loop
     if(gameLoopId) cancelAnimationFrame(gameLoopId);
     activeGame = type;
     let score = 0;
@@ -51,7 +44,7 @@ function initGame(type) {
     let frame = 0;
     let alive = true;
 
-    // --- PAC-MAN ENGINE ---
+    // --- PAC-MAN ---
     if (type === 'pacman') {
         canvas.width = 336; canvas.height = 380;
         document.getElementById('dpad').classList.remove('hidden');
@@ -128,8 +121,6 @@ function initGame(type) {
         let player = { x: 150, w: 40, h: 20 }, bullets = [], invaders = [], invDir = 1;
         for(let r=0; r<4; r++) for(let c=0; c<6; c++) invaders.push({ x: 30+c*45, y: 30+r*35, t: r===0?'🐙':'👾' });
         function fire() { bullets.push({ x: player.x+15, y: 400 }); }
-        
-        // Touch to fire for invaders
         canvas.ontouchstart = (e) => { e.preventDefault(); fire(); };
         window.onkeydown = (e) => { if(e.code==='Space'&&alive) fire(); };
 
@@ -159,13 +150,8 @@ function initGame(type) {
     } else if (type === 'paperboy') {
         canvas.width = 340; canvas.height = 450;
         let player = { x: 170, y: 350 }, world = [], hearts = [];
-        
         canvas.ontouchstart = (e) => { e.preventDefault(); hearts.push({x:player.x+20,y:player.y,vx:-5,vy:-5}); };
-        window.onkeydown = (e) => { 
-            if(e.code==='Space'&&alive) hearts.push({x:player.x+20,y:player.y,vx:-5,vy:-5}); 
-            if(['ArrowLeft','ArrowRight'].includes(e.code)) keys[e.code]=true;
-        };
-        window.onkeyup = (e) => { if(['ArrowLeft','ArrowRight'].includes(e.code)) keys[e.code]=false; };
+        window.onkeydown = (e) => { if(e.code==='Space'&&alive) hearts.push({x:player.x+20,y:player.y,vx:-5,vy:-5}); };
 
         function pbLoop() {
             if(!alive) return; frame++;
@@ -193,28 +179,24 @@ function initGame(type) {
     }
 }
 
-// --- DOM LOAD ---
+// DOM LOAD
 document.addEventListener('DOMContentLoaded', () => {
-    // UI ELEMENTS
     const envWrap = document.getElementById('envelope-wrap');
     const flap = document.getElementById('flap');
     const paper = document.getElementById('main-paper');
     const area = document.getElementById('actionArea');
     const no = document.getElementById('noBtn');
-    
-    // CONTRACT
     const termsModal = document.getElementById('terms-modal');
     const termsCheck = document.getElementById('terms-checkbox');
     const acceptTermsBtn = document.getElementById('acceptTermsBtn');
     const dateSpan = document.getElementById('current-date');
     const celebration = document.getElementById('celebration');
     
-    // STARTUP
-    if(termsModal) termsModal.classList.add('hidden');
-    if(celebration) celebration.style.display = 'none'; 
+    termsModal.classList.add('hidden');
+    celebration.classList.add('hidden');
+    celebration.style.display = 'none'; 
     if(dateSpan) dateSpan.innerText = new Date().toLocaleDateString();
 
-    // 1. OPEN ENVELOPE
     envWrap.addEventListener('click', () => {
         if(envWrap.classList.contains('open')) return;
         envWrap.classList.add('open');
@@ -230,7 +212,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 600);
     });
 
-    // 2. NO BUTTON
     const moveNo = () => {
         no.style.left = Math.random() * (area.clientWidth - no.offsetWidth) + 'px';
         no.style.top = Math.random() * (area.clientHeight - no.offsetHeight) + 'px';
@@ -239,7 +220,6 @@ document.addEventListener('DOMContentLoaded', () => {
     no.addEventListener('mouseover', moveNo);
     no.addEventListener('touchstart', (e) => { e.preventDefault(); moveNo(); });
 
-    // 3. YES -> TERMS
     document.getElementById('yesBtn').addEventListener('click', () => {
         paper.style.transition = "transform 0.8s ease-in";
         paper.style.transform = "translateY(-150%) rotate(10deg)";
@@ -249,7 +229,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 500);
     });
 
-    // 4. TERMS -> GAME
     if(termsCheck) {
         termsCheck.addEventListener('change', (e) => {
             if(e.target.checked) acceptTermsBtn.classList.remove('disabled');
@@ -260,12 +239,23 @@ document.addEventListener('DOMContentLoaded', () => {
         acceptTermsBtn.addEventListener('click', () => {
             termsModal.classList.add('hidden');
             celebration.classList.remove('hidden');
-            celebration.style.display = 'flex'; // This triggers the CSS flex-column
+            celebration.style.display = 'block'; // Triggers CSS
             resetToMenu();
         });
     }
 
-    // TOUCH HANDLERS FOR DPAD
+    window.addEventListener('keydown', (e) => {
+        if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
+        keys[e.code] = true;
+        if(activeGame === 'pacman') {
+            if(e.code === 'ArrowUp') pacNextDir = 1;
+            if(e.code === 'ArrowDown') pacNextDir = 3;
+            if(e.code === 'ArrowLeft') pacNextDir = 2;
+            if(e.code === 'ArrowRight') pacNextDir = 0;
+        }
+    });
+    window.addEventListener('keyup', (e) => keys[e.code] = false);
+
     ['up','down','left','right'].forEach(dir => {
         const btn = document.getElementById('d-'+dir);
         if(!btn) return;
