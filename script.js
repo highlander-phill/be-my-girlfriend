@@ -1,169 +1,23 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // UI ELEMENTS
-    const envWrap = document.getElementById('envelope-wrap');
-    const flap = document.getElementById('flap');
-    const paper = document.getElementById('main-paper');
-    const area = document.getElementById('actionArea');
-    const no = document.getElementById('noBtn');
-    
-    // CONTRACT
-    const termsModal = document.getElementById('terms-modal');
-    const termsCheck = document.getElementById('terms-checkbox');
-    const acceptTermsBtn = document.getElementById('acceptTermsBtn');
-    const dateSpan = document.getElementById('current-date');
-    const celebration = document.getElementById('celebration');
-    
-    // STARTUP
-    termsModal.classList.add('hidden');
-    celebration.classList.add('hidden');
-    if(dateSpan) dateSpan.innerText = new Date().toLocaleDateString();
-
-    // 1. OPEN ENVELOPE
-    envWrap.addEventListener('click', () => {
-        if(envWrap.classList.contains('open')) return;
-        envWrap.classList.add('open');
-        setTimeout(() => {
-            envWrap.classList.add('fly-away');
-            setTimeout(() => {
-                envWrap.classList.add('hidden');
-                flap.style.display = 'none';
-                paper.classList.remove('hidden');
-                void paper.offsetWidth; 
-                paper.classList.add('visible');
-            }, 500);
-        }, 600);
-    });
-
-    // 2. NO BUTTON
-    const moveNo = () => {
-        no.style.left = Math.random() * (area.clientWidth - no.offsetWidth) + 'px';
-        no.style.top = Math.random() * (area.clientHeight - no.offsetHeight) + 'px';
-        no.style.transform = 'none';
-    };
-    no.addEventListener('mouseover', moveNo);
-    no.addEventListener('touchstart', (e) => { e.preventDefault(); moveNo(); });
-
-    // 3. YES -> TERMS
-    document.getElementById('yesBtn').addEventListener('click', () => {
-        paper.style.transition = "transform 0.8s ease-in";
-        paper.style.transform = "translateY(-150%) rotate(10deg)";
-        setTimeout(() => {
-            paper.classList.add('hidden');
-            termsModal.classList.remove('hidden'); 
-        }, 500);
-    });
-
-    // 4. ACCEPT TERMS -> GAME MENU
-    if(termsCheck) {
-        termsCheck.addEventListener('change', (e) => {
-            if(e.target.checked) acceptTermsBtn.classList.remove('disabled');
-            else acceptTermsBtn.classList.add('disabled');
-        });
-    }
-    if(acceptTermsBtn) {
-        acceptTermsBtn.addEventListener('click', () => {
-            termsModal.classList.add('hidden');
-            celebration.classList.remove('hidden');
-            celebration.style.display = 'flex'; 
-            resetToMenu();
-        });
-    }
-
-    // --- GAME BUTTON LISTENERS (THE FIX) ---
-    function attachGameStart(id, type) {
-        const btn = document.getElementById(id);
-        if(btn) {
-            // Standard Click
-            btn.addEventListener('click', () => initGame(type));
-            // Mobile Instant Touch
-            btn.addEventListener('touchstart', (e) => {
-                e.preventDefault(); // Stop zoom/delay
-                initGame(type);
-            });
-        }
-    }
-
-    attachGameStart('btn-paperboy', 'paperboy');
-    attachGameStart('btn-pacman', 'pacman');
-    attachGameStart('btn-invaders', 'invaders');
-
-    // Menu Navigation Buttons
-    const btnExit = document.getElementById('btn-exit');
-    if(btnExit) {
-        btnExit.addEventListener('click', resetToMenu);
-        btnExit.addEventListener('touchstart', (e) => { e.preventDefault(); resetToMenu(); });
-    }
-    
-    const btnRestart = document.getElementById('btn-restart');
-    if(btnRestart) {
-        btnRestart.addEventListener('click', restartLevel);
-        btnRestart.addEventListener('touchstart', (e) => { e.preventDefault(); restartLevel(); });
-    }
-
-    const btnMenu = document.getElementById('btn-menu');
-    if(btnMenu) {
-        btnMenu.addEventListener('click', resetToMenu);
-        btnMenu.addEventListener('touchstart', (e) => { e.preventDefault(); resetToMenu(); });
-    }
-
-    // --- INPUT ---
-    window.addEventListener('keydown', (e) => {
-        if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
-        keys[e.code] = true;
-        if(activeGame === 'pacman') {
-            if(e.code === 'ArrowUp') pacNextDir = 1;
-            if(e.code === 'ArrowDown') pacNextDir = 3;
-            if(e.code === 'ArrowLeft') pacNextDir = 2;
-            if(e.code === 'ArrowRight') pacNextDir = 0;
-        }
-    });
-    window.addEventListener('keyup', (e) => keys[e.code] = false);
-
-    // TOUCH
-    ['up','down','left','right'].forEach(dir => {
-        const btn = document.getElementById('d-'+dir);
-        if(!btn) return;
-        const pacCode = {up:1, down:3, left:2, right:0}[dir];
-        const keyMap = {up:'ArrowUp', down:'ArrowDown', left:'ArrowLeft', right:'ArrowRight'};
-
-        const press = (e) => {
-            e.preventDefault();
-            keys[keyMap[dir]] = true; 
-            if(dir === 'left') touchState.left = true;
-            if(dir === 'right') touchState.right = true;
-            if(dir === 'up') touchState.up = true;
-            if(dir === 'down') touchState.down = true;
-            if(activeGame === 'pacman') pacNextDir = pacCode; 
-        };
-        const release = (e) => { 
-            e.preventDefault(); 
-            keys[keyMap[dir]] = false; 
-            if(dir === 'left') touchState.left = false;
-            if(dir === 'right') touchState.right = false;
-            if(dir === 'up') touchState.up = false;
-            if(dir === 'down') touchState.down = false;
-        };
-
-        btn.addEventListener('touchstart', press);
-        btn.addEventListener('touchend', release);
-        btn.addEventListener('mousedown', press);
-        btn.addEventListener('mouseup', release);
-    });
-});
-
+// --- GLOBAL VARIABLES (Must be outside to be seen by HTML) ---
 let gameLoopId;
 let activeGame = null;
 let keys = {};
 let touchState = { left: false, right: false, up: false, down: false };
 let pacNextDir = 0;
 
+// --- GLOBAL FUNCTIONS (Attached to window so HTML onclick works) ---
+
 function resetToMenu() {
     if(gameLoopId) cancelAnimationFrame(gameLoopId);
     activeGame = null;
     document.getElementById('arcade-wrap').classList.add('hidden');
     document.getElementById('arcade-wrap').style.display = 'none';
+    
     document.getElementById('game-selection').style.display = 'block';
+    
     document.getElementById('game-over').classList.add('hidden');
+    document.getElementById('game-over').style.display = 'none';
+    
     document.getElementById('dpad').classList.add('hidden');
 }
 
@@ -172,10 +26,14 @@ function restartLevel() {
 }
 
 function initGame(type) {
+    // Hide Menu, Show Game
     document.getElementById('game-selection').style.display = 'none';
-    document.getElementById('arcade-wrap').style.display = 'flex';
     document.getElementById('arcade-wrap').classList.remove('hidden');
+    document.getElementById('arcade-wrap').style.display = 'flex';
+    
     document.getElementById('game-over').classList.add('hidden');
+    document.getElementById('game-over').style.display = 'none';
+    
     document.getElementById('dpad').classList.add('hidden');
 
     const canvas = document.getElementById('gameCanvas');
@@ -239,8 +97,8 @@ function initGame(type) {
                     if(g.dir===0) g.x++; if(g.dir===1) g.y--; if(g.dir===2) g.x--; if(g.dir===3) g.y++;
                     if(g.x<0) g.x=map[0].length-1; if(g.x>=map[0].length) g.x=0; if(g.y<0) g.y=map.length-1; if(g.y>=map.length) g.y=0;
                     if(g.x===player.x && g.y===player.y) {
-                        if(g.vulnerable) { g.x=10; g.y=8; g.vulnerable=false; document.getElementById('game-over').classList.remove('hidden'); }
-                        else { alive=false; document.getElementById('game-over').classList.remove('hidden'); }
+                        if(g.vulnerable) { g.x=10; g.y=8; g.vulnerable=false; document.getElementById('game-over').style.display='block'; }
+                        else { alive=false; document.getElementById('game-over').style.display='block'; }
                     }
                 });
             }
@@ -276,10 +134,10 @@ function initGame(type) {
             player.x=Math.max(0,Math.min(canvas.width-40,player.x));
 
             if(frame%4===0) { let hitEdge=false; invaders.forEach(inv=>{inv.x+=(2*invDir); if(inv.x>canvas.width-30 || inv.x<0) hitEdge=true;}); if(hitEdge) { invDir*=-1; invaders.forEach(inv=>inv.y+=10); } }
-            ctx.fillStyle='red'; ctx.font='24px Arial'; invaders.forEach(inv=>{ctx.fillText(inv.t,inv.x,inv.y); if(inv.y>380) {alive=false; document.getElementById('game-over').classList.remove('hidden');}});
+            ctx.fillStyle='red'; ctx.font='24px Arial'; invaders.forEach(inv=>{ctx.fillText(inv.t,inv.x,inv.y); if(inv.y>380) {alive=false; document.getElementById('game-over').style.display='block';}});
             bullets.forEach((b,i)=>{b.y-=7; ctx.fillText('❤️',b.x,b.y); invaders.forEach((inv,ii)=>{if(b.x>inv.x && b.x<inv.x+30 && b.y<inv.y && b.y>inv.y-20) {invaders.splice(ii,1); bullets.splice(i,1); document.getElementById('score').innerText=(score+=100);}});});
             ctx.fillStyle='#00ff00'; ctx.fillRect(player.x,420,40,20); ctx.fillRect(player.x+15,410,10,10);
-            if(invaders.length===0) { document.getElementById('game-over').querySelector('h2').innerText="YOU WIN!"; alive=false; document.getElementById('game-over').classList.remove('hidden'); }
+            if(invaders.length===0) { document.getElementById('game-over').querySelector('h2').innerText="YOU WIN!"; alive=false; document.getElementById('game-over').style.display='block'; }
             gameLoopId=requestAnimationFrame(invLoop);
         }
         invLoop();
@@ -303,7 +161,7 @@ function initGame(type) {
             world.forEach((w,i)=>{
                 w.y+=w.speed; if(w.isCar && w.y<0) w.x=Math.max(120, Math.min(300, w.x)); 
                 ctx.font='40px Arial'; ctx.fillText(w.hit?'💖':w.t,w.x,w.y); 
-                if(w.isCar && Math.hypot(player.x-w.x,player.y-w.y)<30) {alive=false; document.getElementById('game-over').classList.remove('hidden');} if(w.y>500) world.splice(i,1);
+                if(w.isCar && Math.hypot(player.x-w.x,player.y-w.y)<30) {alive=false; document.getElementById('game-over').style.display='block';} if(w.y>500) world.splice(i,1);
             });
             hearts.forEach((h,i)=>{h.x+=h.vx; h.y+=h.vy; ctx.font='20px Arial'; ctx.fillText('❤️',h.x,h.y); world.forEach(w=>{if(w.t==='🏠'&&!w.hit&&Math.hypot(h.x-w.x,h.y-w.y)<40){w.hit=true;document.getElementById('score').innerText=(score+=50);}});});
             ctx.font='40px Arial'; ctx.fillText('🚲',player.x,player.y);
@@ -312,3 +170,118 @@ function initGame(type) {
         pbLoop();
     }
 }
+
+// --- DOM READY HANDLER (Only for page setup) ---
+document.addEventListener('DOMContentLoaded', () => {
+    // UI ELEMENTS
+    const envWrap = document.getElementById('envelope-wrap');
+    const flap = document.getElementById('flap');
+    const paper = document.getElementById('main-paper');
+    const area = document.getElementById('actionArea');
+    const no = document.getElementById('noBtn');
+    const termsModal = document.getElementById('terms-modal');
+    const termsCheck = document.getElementById('terms-checkbox');
+    const acceptTermsBtn = document.getElementById('acceptTermsBtn');
+    const dateSpan = document.getElementById('current-date');
+    const celebration = document.getElementById('celebration');
+    
+    // STARTUP
+    termsModal.classList.add('hidden');
+    celebration.classList.add('hidden');
+    if(dateSpan) dateSpan.innerText = new Date().toLocaleDateString();
+
+    // 1. OPEN ENVELOPE
+    envWrap.addEventListener('click', () => {
+        if(envWrap.classList.contains('open')) return;
+        envWrap.classList.add('open');
+        setTimeout(() => {
+            envWrap.classList.add('fly-away');
+            setTimeout(() => {
+                envWrap.classList.add('hidden');
+                flap.style.display = 'none';
+                paper.classList.remove('hidden');
+                void paper.offsetWidth; 
+                paper.classList.add('visible');
+            }, 500);
+        }, 600);
+    });
+
+    // 2. NO BUTTON
+    const moveNo = () => {
+        no.style.left = Math.random() * (area.clientWidth - no.offsetWidth) + 'px';
+        no.style.top = Math.random() * (area.clientHeight - no.offsetHeight) + 'px';
+        no.style.transform = 'none';
+    };
+    no.addEventListener('mouseover', moveNo);
+    no.addEventListener('touchstart', (e) => { e.preventDefault(); moveNo(); });
+
+    // 3. YES -> TERMS
+    document.getElementById('yesBtn').addEventListener('click', () => {
+        paper.style.transition = "transform 0.8s ease-in";
+        paper.style.transform = "translateY(-150%) rotate(10deg)";
+        setTimeout(() => {
+            paper.classList.add('hidden');
+            termsModal.classList.remove('hidden'); 
+        }, 500);
+    });
+
+    // 4. TERMS -> GAME MENU
+    if(termsCheck) {
+        termsCheck.addEventListener('change', (e) => {
+            if(e.target.checked) acceptTermsBtn.classList.remove('disabled');
+            else acceptTermsBtn.classList.add('disabled');
+        });
+    }
+    if(acceptTermsBtn) {
+        acceptTermsBtn.addEventListener('click', () => {
+            termsModal.classList.add('hidden');
+            celebration.classList.remove('hidden');
+            celebration.style.display = 'flex';
+            resetToMenu();
+        });
+    }
+
+    // --- INPUT ---
+    window.addEventListener('keydown', (e) => {
+        if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
+        keys[e.code] = true;
+        if(activeGame === 'pacman') {
+            if(e.code === 'ArrowUp') pacNextDir = 1;
+            if(e.code === 'ArrowDown') pacNextDir = 3;
+            if(e.code === 'ArrowLeft') pacNextDir = 2;
+            if(e.code === 'ArrowRight') pacNextDir = 0;
+        }
+    });
+    window.addEventListener('keyup', (e) => keys[e.code] = false);
+
+    // TOUCH
+    ['up','down','left','right'].forEach(dir => {
+        const btn = document.getElementById('d-'+dir);
+        if(!btn) return;
+        const pacCode = {up:1, down:3, left:2, right:0}[dir];
+        const keyMap = {up:'ArrowUp', down:'ArrowDown', left:'ArrowLeft', right:'ArrowRight'};
+
+        const press = (e) => {
+            e.preventDefault();
+            keys[keyMap[dir]] = true; 
+            if(dir === 'left') touchState.left = true;
+            if(dir === 'right') touchState.right = true;
+            if(dir === 'up') touchState.up = true;
+            if(dir === 'down') touchState.down = true;
+            if(activeGame === 'pacman') pacNextDir = pacCode; 
+        };
+        const release = (e) => { 
+            e.preventDefault(); 
+            keys[keyMap[dir]] = false; 
+            if(dir === 'left') touchState.left = false;
+            if(dir === 'right') touchState.right = false;
+            if(dir === 'up') touchState.up = false;
+            if(dir === 'down') touchState.down = false;
+        };
+
+        btn.addEventListener('touchstart', press);
+        btn.addEventListener('touchend', release);
+        btn.addEventListener('mousedown', press);
+        btn.addEventListener('mouseup', release);
+    });
+});

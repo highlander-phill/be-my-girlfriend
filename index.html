@@ -68,15 +68,15 @@
     <div class="celebration hidden" id="celebration">
         <div id="game-selection">
             <h2 class="arcade-title">SELECT GAME</h2>
-            <button id="btn-paperboy" class="menu-btn">PAPERBOY: LOVE DELIVERY</button>
-            <button id="btn-pacman" class="menu-btn">PAC-KRYSTLE: EX-HUNTER</button>
-            <button id="btn-invaders" class="menu-btn">SPACE INVADERS: DEFENSE</button>
+            <button class="menu-btn" onclick="initGame('paperboy')">PAPERBOY: LOVE DELIVERY</button>
+            <button class="menu-btn" onclick="initGame('pacman')">PAC-KRYSTLE: EX-HUNTER</button>
+            <button class="menu-btn" onclick="initGame('invaders')">SPACE INVADERS: DEFENSE</button>
         </div>
         
         <div id="arcade-wrap" class="hidden">
             <div class="stats-bar">
                 <span id="score-label">SCORE: <span id="score">0</span></span>
-                <button id="btn-exit" class="exit-btn">MENU</button>
+                <button onclick="resetToMenu()" class="exit-btn">MENU</button>
             </div>
             
             <canvas id="gameCanvas"></canvas>
@@ -93,13 +93,13 @@
             <div id="game-over" class="hidden">
                 <h2 class="blink" style="color:red; margin-bottom: 10px;">GAME OVER!</h2>
                 <p style="color: #00ff00; margin-bottom: 20px; font-family: monospace;">But don't worry,<br>you still get Phillip! 😉</p>
-                <button id="btn-restart" class="menu-btn">TRY AGAIN</button>
-                <button id="btn-menu" class="menu-btn" style="background: #333; border-color: #666;">MAIN MENU</button>
+                <button onclick="restartLevel()" class="menu-btn">TRY AGAIN</button>
+                <button onclick="resetToMenu()" class="menu-btn" style="background: #333; border-color: #666;">MAIN MENU</button>
             </div>
         </div>
     </div>
 
-    <div id="version-tag">v5.1 - CLICK FIX</div>
+    <div id="version-tag">v6.0 - MENU FIXED</div>
     <script src="script.js"></script>
 </body>
 </html>
