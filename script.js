@@ -1,8 +1,7 @@
-// --- GLOBAL VARIABLES ---
+// --- GLOBAL VARS ---
 let gameLoopId;
 let activeGame = null;
 let keys = {};
-let touchState = { left: false, right: false, up: false, down: false };
 let pacNextDir = 0;
 let gameLevel = 1;
 let currentScore = 0;
@@ -21,7 +20,6 @@ function resetToMenu() {
 }
 
 function restartLevel() {
-    // If we won, go to next level, otherwise restart current
     if (document.getElementById('go-title').innerText.includes("CLEARED")) {
         gameLevel++;
     } else {
@@ -60,23 +58,54 @@ function initGame(type) {
     document.getElementById('game-over').style.display = 'none';
     document.getElementById('dpad').classList.add('hidden');
 
-    // Update stats
     document.getElementById('score').innerText = currentScore;
     document.getElementById('level-indicator').innerText = gameLevel;
 
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     
+    // RESET LISTENERS (To prevent double firing)
+    canvas.ontouchstart = null;
+    canvas.ontouchmove = null;
+    canvas.ontouchend = null;
+    window.onkeydown = null;
+    window.onkeyup = null;
+
     if(gameLoopId) cancelAnimationFrame(gameLoopId);
     activeGame = type;
     
     let frame = 0;
     let alive = true;
 
+    // --- KEYBOARD SETUP ---
+    window.addEventListener('keydown', (e) => {
+        if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
+        keys[e.code] = true;
+    });
+    window.addEventListener('keyup', (e) => keys[e.code] = false);
+
     // --- PAC-MAN ---
     if (type === 'pacman') {
         canvas.width = 336; canvas.height = 380;
-        document.getElementById('dpad').classList.remove('hidden');
+        document.getElementById('dpad').classList.remove('hidden'); // Show D-Pad for Pacman
+        
+        // SWIPE LOGIC
+        let tsX = 0, tsY = 0;
+        canvas.ontouchstart = (e) => { tsX = e.touches[0].clientX; tsY = e.touches[0].clientY; e.preventDefault(); };
+        canvas.ontouchend = (e) => {
+            let teX = e.changedTouches[0].clientX;
+            let teY = e.changedTouches[0].clientY;
+            let dx = teX - tsX;
+            let dy = teY - tsY;
+            if(Math.abs(dx) > Math.abs(dy)) {
+                if(dx > 0) pacNextDir = 0; // Right
+                else pacNextDir = 2; // Left
+            } else {
+                if(dy > 0) pacNextDir = 3; // Down
+                else pacNextDir = 1; // Up
+            }
+        };
+
         const TILE = 16;
         let map = [
             [1,1,1,1,1,1,1,1,1,9,9,9,1,1,1,1,1,1,1,1,1], [1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1],
@@ -92,17 +121,17 @@ function initGame(type) {
         let ghosts = [ { x: 9, y: 8, color: 'red' }, { x: 10, y: 8, color: 'pink' }, { x: 11, y: 8, color: 'cyan' } ];
         let dotsRemaining = 0;
         
-        // Count initial dots
         for(let r=0;r<map.length;r++) for(let c=0;c<map[r].length;c++) if(map[r][c]===0 || map[r][c]===8) dotsRemaining++;
 
         function pacLoop() {
             if(!alive) return;
             frame++;
             
-            if (input.up) pacNextDir = 1;
-            if (input.down) pacNextDir = 3;
-            if (input.left) pacNextDir = 2;
-            if (input.right) pacNextDir = 0;
+            // D-Pad Touch Controls override
+            if (keys['ArrowUp']) pacNextDir = 1;
+            if (keys['ArrowDown']) pacNextDir = 3;
+            if (keys['ArrowLeft']) pacNextDir = 2;
+            if (keys['ArrowRight']) pacNextDir = 0;
 
             ctx.fillStyle = 'black'; ctx.fillRect(0,0,canvas.width,canvas.height);
             for(let y=0; y<map.length; y++) for(let x=0; x<map[y].length; x++) {
@@ -146,9 +175,7 @@ function initGame(type) {
                     g.dir = dirs[Math.floor(Math.random()*4)];
                     let gx=g.x, gy=g.y;
                     if(g.dir===0) gx++; if(g.dir===1) gy--; if(g.dir===2) gx--; if(g.dir===3) gy++;
-                    
                     if(gx>=0 && gx<map[0].length && gy>=0 && gy<map.length && map[gy][gx]!==1) { g.x=gx; g.y=gy; }
-                    
                     if(g.x===player.x && g.y===player.y) { alive=false; showPopup(false); }
                 });
             }
@@ -163,28 +190,33 @@ function initGame(type) {
     // --- INVADERS ---
     } else if (type === 'invaders') {
         canvas.width = 340; canvas.height = 450;
-        document.getElementById('dpad').classList.remove('hidden');
-        
         let player = { x: 150, w: 40, h: 20 }, bullets = [], invaders = [], invDir = 1;
-        let rows = Math.min(6, 2 + gameLevel); // More rows on higher levels
+        let rows = Math.min(6, 2 + gameLevel);
         
         for(let r=0; r<rows; r++) for(let c=0; c<6; c++) invaders.push({ x: 30+c*45, y: 30+r*35, t: r===0?'🐙':'👾' });
         
         function fire() { bullets.push({ x: player.x+15, y: 400 }); }
         
-        // Touch Action for firing
+        // DIRECT DRAG AND TAP TO FIRE
+        canvas.ontouchmove = (e) => {
+            e.preventDefault();
+            let rect = canvas.getBoundingClientRect();
+            let touchX = e.touches[0].clientX - rect.left;
+            player.x = touchX - 20; // Center ship
+        };
         canvas.ontouchstart = (e) => { e.preventDefault(); fire(); };
 
         function invLoop() {
             if(!alive) return; frame++;
             ctx.fillStyle='#000'; ctx.fillRect(0,0,canvas.width,canvas.height);
             
-            // Touch/Key Movement
-            if(keys['ArrowLeft'] || keys['KeyA'] || touchState.left) player.x-=5; 
-            if(keys['ArrowRight'] || keys['KeyD'] || touchState.right) player.x+=5; 
+            // Key Support
+            if(keys['ArrowLeft']) player.x-=5; 
+            if(keys['ArrowRight']) player.x+=5; 
+            if(keys['Space'] && frame%10===0) fire();
+
             player.x=Math.max(0,Math.min(canvas.width-40,player.x));
 
-            // Enemy Speed based on level
             let speedFreq = Math.max(1, 5 - Math.floor(gameLevel/2));
             if(frame % speedFreq === 0) { 
                 let hitEdge=false; 
@@ -218,11 +250,17 @@ function initGame(type) {
     // --- PAPERBOY ---
     } else if (type === 'paperboy') {
         canvas.width = 340; canvas.height = 450;
-        document.getElementById('dpad').classList.remove('hidden');
         let player = { x: 170, y: 350 }, world = [], hearts = [];
         let distance = 0;
         let goal = 1000 + (gameLevel * 500);
 
+        // DIRECT DRAG AND TAP TO THROW
+        canvas.ontouchmove = (e) => {
+            e.preventDefault();
+            let rect = canvas.getBoundingClientRect();
+            let touchX = e.touches[0].clientX - rect.left;
+            player.x = touchX;
+        };
         canvas.ontouchstart = (e) => { e.preventDefault(); hearts.push({x:player.x+20,y:player.y,vx:-5,vy:-5}); };
 
         function pbLoop() {
@@ -233,11 +271,13 @@ function initGame(type) {
             ctx.fillStyle='#555'; ctx.beginPath(); ctx.moveTo(100,0); ctx.lineTo(340,0); ctx.lineTo(340,450); ctx.lineTo(100,450); ctx.fill(); 
             ctx.fillStyle='#777'; ctx.fillRect(80,0,20,450);
             
-            if(keys['ArrowLeft'] || keys['KeyA'] || touchState.left) player.x-=5; 
-            if(keys['ArrowRight'] || keys['KeyD'] || touchState.right) player.x+=5; 
+            // Key Support
+            if(keys['ArrowLeft']) player.x-=5; 
+            if(keys['ArrowRight']) player.x+=5; 
+            if(keys['Space'] && frame%10===0) hearts.push({x:player.x+20,y:player.y,vx:-5,vy:-5});
+
             player.x=Math.max(100,Math.min(300,player.x));
             
-            // Spawn Rate increases with level
             let spawnRate = Math.max(20, 50 - (gameLevel*5));
             if(frame % spawnRate === 0) { 
                 let isHouse=Math.random()>0.4; 
@@ -246,7 +286,9 @@ function initGame(type) {
             }
 
             world.forEach((w,i)=>{
-                w.y+=w.speed; if(w.isCar && w.y<0) w.x=Math.max(120, Math.min(300, w.x)); 
+                w.y += w.speed; 
+                if(w.isCar && w.y<0) w.x = Math.max(120, Math.min(300, w.x)); 
+                
                 ctx.font='40px Arial'; ctx.fillText(w.hit?'💖':w.t,w.x,w.y); 
                 if(w.isCar && Math.abs(player.x - w.x) < 30 && Math.abs(player.y - w.y) < 30) { alive=false; showPopup(false); } 
                 if(w.y>500) world.splice(i,1);
@@ -259,7 +301,6 @@ function initGame(type) {
 
             ctx.font='40px Arial'; ctx.fillText('🚲',player.x,player.y);
             
-            // Level Clear Condition
             if (distance > goal) { alive = false; showPopup(true); }
             
             gameLoopId=requestAnimationFrame(pbLoop);
@@ -333,23 +374,21 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // ON-SCREEN BUTTONS (TOUCH) - For Pac-Man
     ['up','down','left','right'].forEach(dir => {
         const btn = document.getElementById('d-'+dir);
         if(!btn) return;
         
+        const pacCode = {up:1, down:3, left:2, right:0}[dir];
+        
         const press = (e) => {
             e.preventDefault();
-            if(dir === 'left') touchState.left = true;
-            if(dir === 'right') touchState.right = true;
-            if(dir === 'up') touchState.up = true;
-            if(dir === 'down') touchState.down = true;
+            keys['Arrow'+dir.charAt(0).toUpperCase() + dir.slice(1)] = true; // Map to keys
+            if(activeGame === 'pacman') pacNextDir = pacCode; 
         };
         const release = (e) => { 
             e.preventDefault(); 
-            if(dir === 'left') touchState.left = false;
-            if(dir === 'right') touchState.right = false;
-            if(dir === 'up') touchState.up = false;
-            if(dir === 'down') touchState.down = false;
+            keys['Arrow'+dir.charAt(0).toUpperCase() + dir.slice(1)] = false; 
         };
 
         btn.addEventListener('touchstart', press);
