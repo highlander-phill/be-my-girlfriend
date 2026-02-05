@@ -97,6 +97,8 @@ document.addEventListener('DOMContentLoaded', () => {
             keys[keyMap[dir]] = true; 
             if(dir === 'left') touchState.left = true;
             if(dir === 'right') touchState.right = true;
+            if(dir === 'up') touchState.up = true;
+            if(dir === 'down') touchState.down = true;
             if(activeGame === 'pacman') pacNextDir = pacCode; 
         };
         const release = (e) => { 
@@ -104,6 +106,8 @@ document.addEventListener('DOMContentLoaded', () => {
             keys[keyMap[dir]] = false; 
             if(dir === 'left') touchState.left = false;
             if(dir === 'right') touchState.right = false;
+            if(dir === 'up') touchState.up = false;
+            if(dir === 'down') touchState.down = false;
         };
 
         btn.addEventListener('touchstart', press);
@@ -116,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
 let gameLoopId;
 let activeGame = null;
 let keys = {};
-let touchState = { left: false, right: false };
+let touchState = { left: false, right: false, up: false, down: false, jump: false };
 let pacNextDir = 0;
 
 function resetToMenu() {
