@@ -1,19 +1,21 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // ELEMENTS
+    // UI ELEMENTS
     const envWrap = document.getElementById('envelope-wrap');
     const flap = document.getElementById('flap');
     const paper = document.getElementById('main-paper');
     const area = document.getElementById('actionArea');
     const no = document.getElementById('noBtn');
+    
+    // CONTRACT
     const termsModal = document.getElementById('terms-modal');
     const termsCheck = document.getElementById('terms-checkbox');
     const acceptTermsBtn = document.getElementById('acceptTermsBtn');
     const dateSpan = document.getElementById('current-date');
     const celebration = document.getElementById('celebration');
     
-    // FORCE RESET
-    if(termsModal) termsModal.classList.add('hidden');
-    if(celebration) celebration.classList.add('hidden');
+    // STARTUP
+    termsModal.classList.add('hidden');
+    celebration.classList.add('hidden');
     if(dateSpan) dateSpan.innerText = new Date().toLocaleDateString();
 
     // 1. OPEN ENVELOPE
@@ -51,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 500);
     });
 
-    // 4. ACCEPT TERMS
+    // 4. ACCEPT TERMS -> GAME MENU
     if(termsCheck) {
         termsCheck.addEventListener('change', (e) => {
             if(e.target.checked) acceptTermsBtn.classList.remove('disabled');
@@ -62,14 +64,49 @@ document.addEventListener('DOMContentLoaded', () => {
         acceptTermsBtn.addEventListener('click', () => {
             termsModal.classList.add('hidden');
             celebration.classList.remove('hidden');
-            // Force reset of game state
-            document.getElementById('arcade-wrap').classList.add('hidden');
-            document.getElementById('game-over').classList.add('hidden');
-            document.getElementById('game-selection').style.display = 'block';
+            celebration.style.display = 'flex'; 
+            resetToMenu();
         });
     }
 
-    // --- GAME INPUT ---
+    // --- GAME BUTTON LISTENERS (THE FIX) ---
+    function attachGameStart(id, type) {
+        const btn = document.getElementById(id);
+        if(btn) {
+            // Standard Click
+            btn.addEventListener('click', () => initGame(type));
+            // Mobile Instant Touch
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault(); // Stop zoom/delay
+                initGame(type);
+            });
+        }
+    }
+
+    attachGameStart('btn-paperboy', 'paperboy');
+    attachGameStart('btn-pacman', 'pacman');
+    attachGameStart('btn-invaders', 'invaders');
+
+    // Menu Navigation Buttons
+    const btnExit = document.getElementById('btn-exit');
+    if(btnExit) {
+        btnExit.addEventListener('click', resetToMenu);
+        btnExit.addEventListener('touchstart', (e) => { e.preventDefault(); resetToMenu(); });
+    }
+    
+    const btnRestart = document.getElementById('btn-restart');
+    if(btnRestart) {
+        btnRestart.addEventListener('click', restartLevel);
+        btnRestart.addEventListener('touchstart', (e) => { e.preventDefault(); restartLevel(); });
+    }
+
+    const btnMenu = document.getElementById('btn-menu');
+    if(btnMenu) {
+        btnMenu.addEventListener('click', resetToMenu);
+        btnMenu.addEventListener('touchstart', (e) => { e.preventDefault(); resetToMenu(); });
+    }
+
+    // --- INPUT ---
     window.addEventListener('keydown', (e) => {
         if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
         keys[e.code] = true;
@@ -82,6 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     window.addEventListener('keyup', (e) => keys[e.code] = false);
 
+    // TOUCH
     ['up','down','left','right'].forEach(dir => {
         const btn = document.getElementById('d-'+dir);
         if(!btn) return;
@@ -93,6 +131,8 @@ document.addEventListener('DOMContentLoaded', () => {
             keys[keyMap[dir]] = true; 
             if(dir === 'left') touchState.left = true;
             if(dir === 'right') touchState.right = true;
+            if(dir === 'up') touchState.up = true;
+            if(dir === 'down') touchState.down = true;
             if(activeGame === 'pacman') pacNextDir = pacCode; 
         };
         const release = (e) => { 
@@ -100,6 +140,8 @@ document.addEventListener('DOMContentLoaded', () => {
             keys[keyMap[dir]] = false; 
             if(dir === 'left') touchState.left = false;
             if(dir === 'right') touchState.right = false;
+            if(dir === 'up') touchState.up = false;
+            if(dir === 'down') touchState.down = false;
         };
 
         btn.addEventListener('touchstart', press);
@@ -112,20 +154,26 @@ document.addEventListener('DOMContentLoaded', () => {
 let gameLoopId;
 let activeGame = null;
 let keys = {};
-let touchState = { left: false, right: false };
+let touchState = { left: false, right: false, up: false, down: false };
 let pacNextDir = 0;
 
 function resetToMenu() {
     if(gameLoopId) cancelAnimationFrame(gameLoopId);
     activeGame = null;
     document.getElementById('arcade-wrap').classList.add('hidden');
+    document.getElementById('arcade-wrap').style.display = 'none';
     document.getElementById('game-selection').style.display = 'block';
     document.getElementById('game-over').classList.add('hidden');
     document.getElementById('dpad').classList.add('hidden');
 }
 
+function restartLevel() {
+    if(activeGame) initGame(activeGame);
+}
+
 function initGame(type) {
     document.getElementById('game-selection').style.display = 'none';
+    document.getElementById('arcade-wrap').style.display = 'flex';
     document.getElementById('arcade-wrap').classList.remove('hidden');
     document.getElementById('game-over').classList.add('hidden');
     document.getElementById('dpad').classList.add('hidden');
