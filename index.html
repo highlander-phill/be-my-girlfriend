@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>To: Krystle ❤️</title>
     <link href="https://fonts.googleapis.com/css2?family=Indie+Flower&family=Permanent+Marker&family=VT323&family=Dancing+Script:wght@700&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=999">
+    <link rel="stylesheet" href="styles.css?v=11">
 </head>
 <body>
     
@@ -75,7 +75,8 @@
         
         <div id="arcade-wrap" class="hidden">
             <div class="stats-bar">
-                <span id="score-label">SCORE: <span id="score">0</span></span>
+                <span>SCORE: <span id="score">0</span></span>
+                <span style="color: yellow;">LVL: <span id="level-indicator">1</span></span>
                 <button onclick="resetToMenu()" class="exit-btn">MENU</button>
             </div>
             
@@ -91,15 +92,15 @@
             </div>
             
             <div id="game-over" class="hidden">
-                <h2 class="blink" style="color:red; margin-bottom: 10px;">GAME OVER!</h2>
-                <p style="color: #00ff00; margin-bottom: 20px; font-family: monospace;">But don't worry,<br>you still get Phillip! 😉</p>
-                <button onclick="restartLevel()" class="menu-btn">TRY AGAIN</button>
+                <h2 id="go-title" class="blink" style="color:red; margin-bottom: 10px;">GAME OVER!</h2>
+                <p id="go-msg" style="color: #00ff00; margin-bottom: 20px; font-family: monospace;">But don't worry,<br>you still get Phillip! 😉</p>
+                <button id="btn-action" onclick="restartLevel()" class="menu-btn">TRY AGAIN</button>
                 <button onclick="resetToMenu()" class="menu-btn" style="background: #333; border-color: #666;">MAIN MENU</button>
             </div>
         </div>
     </div>
 
-    <div id="version-tag">v8.0 - BLOCK LAYOUT</div>
+    <div id="version-tag">v11.0 - TOUCH RESTORED</div>
     <script src="script.js"></script>
 </body>
 </html>
