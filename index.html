@@ -1,109 +1,296 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>To: Krystle ❤️</title>
-    <link href="https://fonts.googleapis.com/css2?family=Indie+Flower&family=Permanent+Marker&family=VT323&family=Dancing+Script:wght@700&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=16">
-</head>
-<body>
+// --- GLOBAL VARS ---
+let gameLoopId;
+let activeGame = null;
+let keys = {};
+let pacNextDir = 0;
+let gameLevel = 1;
+let currentScore = 0;
+
+let handleTouchStart = null;
+let handleTouchMove = null;
+let handleTouchEnd = null;
+
+// --- GLOBAL FUNCTIONS ---
+
+function resetToMenu() {
+    if(gameLoopId) cancelAnimationFrame(gameLoopId);
+    activeGame = null;
+    document.getElementById('arcade-wrap').style.display = 'none';
+    document.getElementById('game-selection').style.display = 'block';
+    document.getElementById('game-over').style.display = 'none';
+    document.getElementById('dpad').classList.add('hidden');
     
-    <div class="container">
-        <div class="envelope-wrapper" id="envelope-wrap">
-            <div class="envelope">
-                <div class="envelope-pocket"></div>
-                <div class="envelope-flap" id="flap"></div>
-                <div class="card"><p class="name-tag">Krystle</p></div>
-            </div>
-        </div>
+    const canvas = document.getElementById('gameCanvas');
+    if (handleTouchStart) canvas.removeEventListener('touchstart', handleTouchStart);
+    if (handleTouchMove) canvas.removeEventListener('touchmove', handleTouchMove);
+    if (handleTouchEnd) canvas.removeEventListener('touchend', handleTouchEnd);
+    
+    gameLevel = 1;
+    currentScore = 0;
+}
+
+function restartLevel() {
+    if (document.getElementById('go-title').innerText.includes("CLEARED")) {
+        gameLevel++;
+    } else {
+        gameLevel = 1;
+        currentScore = 0;
+    }
+    initGame(activeGame);
+}
+
+function showPopup(won) {
+    const el = document.getElementById('game-over');
+    const title = document.getElementById('go-title');
+    const msg = document.getElementById('go-msg');
+    const btn = document.getElementById('btn-action');
+
+    el.style.display = 'block';
+    el.classList.remove('hidden');
+
+    if (won) {
+        title.innerText = "LEVEL " + gameLevel + " CLEARED!";
+        title.style.color = "#00ff00";
+        msg.innerText = "Speed Increasing!";
+        btn.innerText = "NEXT LEVEL";
+    } else {
+        title.innerText = "GAME OVER";
+        title.style.color = "red";
+        msg.innerText = "Don't worry, you still get Phillip! 😉";
+        btn.innerText = "TRY AGAIN";
+    }
+}
+
+function initGame(type) {
+    document.getElementById('game-selection').style.display = 'none';
+    document.getElementById('arcade-wrap').classList.remove('hidden');
+    document.getElementById('arcade-wrap').style.display = 'block'; 
+    document.getElementById('game-over').style.display = 'none';
+    document.getElementById('dpad').classList.add('hidden');
+
+    document.getElementById('score').innerText = currentScore;
+    document.getElementById('level-indicator').innerText = gameLevel;
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    if (handleTouchStart) canvas.removeEventListener('touchstart', handleTouchStart);
+    if (handleTouchMove) canvas.removeEventListener('touchmove', handleTouchMove);
+    if (handleTouchEnd) canvas.removeEventListener('touchend', handleTouchEnd);
+    
+    if(gameLoopId) cancelAnimationFrame(gameLoopId);
+    activeGame = type;
+    
+    let frame = 0;
+    let alive = true;
+
+    window.addEventListener('keydown', (e) => {
+        if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
+        keys[e.code] = true;
+    });
+    window.addEventListener('keyup', (e) => keys[e.code] = false);
+
+    // --- PAC-MAN ---
+    if (type === 'pacman') {
+        canvas.width = 336; canvas.height = 380;
+        document.getElementById('dpad').classList.remove('hidden');
         
-        <div class="paper hidden" id="main-paper">
-            <div class="paper-content">
-                <p class="intro">Hey Krystle... 💕</p>
-                <p class="message">
-                    I think it's really important to make a big deal out of asking the question...
-                </p>
-                <br>
+        let tsX = 0, tsY = 0;
+        handleTouchStart = (e) => { 
+            e.preventDefault(); 
+            tsX = e.touches[0].clientX; 
+            tsY = e.touches[0].clientY; 
+        };
+        handleTouchEnd = (e) => {
+            e.preventDefault(); 
+            let teX = e.changedTouches[0].clientX;
+            let teY = e.changedTouches[0].clientY;
+            let dx = teX - tsX;
+            let dy = teY - tsY;
+            if(Math.abs(dx) > Math.abs(dy)) {
+                if(dx > 0) pacNextDir = 0; else pacNextDir = 2;
+            } else {
+                if(dy > 0) pacNextDir = 3; else pacNextDir = 1;
+            }
+        };
+        
+        canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+        canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+
+        const TILE = 16;
+        let map = [
+            [1,1,1,1,1,1,1,1,1,9,9,9,1,1,1,1,1,1,1,1,1], [1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1],
+            [1,8,1,1,1,1,0,1,1,0,1,0,1,1,0,1,1,1,1,8,1], [1,0,1,1,1,1,0,1,1,0,1,0,1,1,0,1,1,1,1,0,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1], [1,0,1,1,1,1,0,1,0,1,1,1,0,1,0,1,1,1,1,0,1],
+            [1,0,0,0,0,0,0,1,0,0,1,0,0,1,0,0,0,0,0,0,1], [1,1,1,1,1,1,0,1,1,9,9,9,1,1,0,1,1,1,1,1,1],
+            [9,9,9,9,9,9,0,1,9,9,9,9,9,1,0,9,9,9,9,9,9], [1,1,1,1,1,1,0,1,9,9,9,9,9,1,0,1,1,1,1,1,1],
+            [1,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,1], [1,0,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,0,1],
+            [1,8,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,8,1], [1,1,0,1,0,1,0,1,1,1,1,1,1,1,0,1,0,1,0,1,1],
+            [1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1], [1,1,1,1,1,1,1,1,1,9,9,9,1,1,1,1,1,1,1,1,1]
+        ];
+        let player = { x: 10, y: 14, dir: 0 };
+        let ghosts = [ { x: 9, y: 8, color: 'red', vulnerable: false }, { x: 10, y: 8, color: 'pink', vulnerable: false }, { x: 11, y: 8, color: 'cyan', vulnerable: false } ];
+        let dotsRemaining = 0;
+        let powerTimer = 0;
+        
+        for(let r=0;r<map.length;r++) for(let c=0;c<map[r].length;c++) if(map[r][c]===0 || map[r][c]===8) dotsRemaining++;
+
+        // COLLISION HELPER
+        function checkCollision() {
+            ghosts.forEach(g => {
+                if(g.x === player.x && g.y === player.y) {
+                    if(g.vulnerable) {
+                        // EAT GHOST
+                        g.x = 9; g.y = 8; // Respawn in box
+                        g.vulnerable = false;
+                        currentScore += 200;
+                        document.getElementById('score').innerText = currentScore;
+                    } else {
+                        // DIE
+                        alive = false; 
+                        showPopup(false);
+                    }
+                }
+            });
+        }
+
+        function pacLoop() {
+            if(!alive) return;
+            frame++;
+            if (powerTimer > 0) powerTimer--;
+            
+            if(powerTimer === 0) ghosts.forEach(g => g.vulnerable = false);
+
+            if (keys['ArrowUp']) pacNextDir = 1;
+            if (keys['ArrowDown']) pacNextDir = 3;
+            if (keys['ArrowLeft']) pacNextDir = 2;
+            if (keys['ArrowRight']) pacNextDir = 0;
+
+            ctx.fillStyle = 'black'; ctx.fillRect(0,0,canvas.width,canvas.height);
+            for(let y=0; y<map.length; y++) for(let x=0; x<map[y].length; x++) {
+                if(map[y][x]===1) { ctx.fillStyle='#1919A6'; ctx.fillRect(x*TILE, y*TILE, TILE, TILE); }
+                else if(map[y][x]===0) { ctx.fillStyle='#ffb8ae'; ctx.beginPath(); ctx.arc(x*TILE+8,y*TILE+8, 3, 0, Math.PI*2); ctx.fill(); }
+                else if(map[y][x]===8) { ctx.fillStyle=(frame%20<10)?'#ffb8ae':'#000'; ctx.beginPath(); ctx.arc(x*TILE+8,y*TILE+8,6,0,Math.PI*2); ctx.fill(); }
+            }
+
+            // PLAYER SPEED (Higher number = Slower)
+            let speed = Math.max(10, 18 - (gameLevel * 2)); 
+            
+            if(frame % speed === 0) {
+                let dx=0, dy=0; 
+                if(pacNextDir===0) dx=1; if(pacNextDir===1) dy=-1; if(pacNextDir===2) dx=-1; if(pacNextDir===3) dy=1;
+                let nextX=player.x+dx, nextY=player.y+dy;
                 
-                <div id="delayed-content" class="invisible">
-                    <p class="main-question">So, Krystle,<br>will you be my girlfriend?</p>
-                    <div class="action-area" id="actionArea">
-                        <button id="yesBtn" class="yes-btn">YES</button>
-                        <button id="noBtn" class="no-btn">NO</button>
-                    </div>
-                </div>
+                if(nextX<0) nextX=map[0].length-1; if(nextX>=map[0].length) nextX=0; 
+                if(nextY<0) nextY=map.length-1; if(nextY>=map.length) nextY=0;
+                
+                if(map[nextY][nextX]!==1) player.dir=pacNextDir;
+                dx=0; dy=0; 
+                if(player.dir===0) dx=1; if(player.dir===1) dy=-1; if(player.dir===2) dx=-1; if(player.dir===3) dy=1;
+                let destX=player.x+dx, destY=player.y+dy;
+                
+                if(destX<0) player.x=map[0].length-1; else if(destX>=map[0].length) player.x=0; 
+                else if(destY<0) player.y=map.length-1; else if(destY>=map.length) player.y=0; 
+                else if(map[destY][destX]!==1) { player.x=destX; player.y=destY; }
+                
+                // CHECK COLLISION AFTER MOVE
+                checkCollision();
 
-            </div>
-        </div>
-    </div>
+                let tile=map[player.y][player.x];
+                if(tile===0 || tile===8) { 
+                    map[player.y][player.x]=9; 
+                    currentScore += (tile===8 ? 50 : 10);
+                    document.getElementById('score').innerText = currentScore;
+                    dotsRemaining--;
+                    
+                    if(tile===8) {
+                        powerTimer = 600; 
+                        ghosts.forEach(g => g.vulnerable = true);
+                    }
 
-    <div id="terms-modal" class="hidden">
-        <div class="legal-paper">
-            <div class="legal-header">
-                <h2>RELATIONSHIP CONTRACT</h2>
-                <span class="doc-id">Doc ID: L0V3-2026-XOXO</span>
-            </div>
-            <div class="terms-body">
-                <p><strong>1. Mutual Weirdness:</strong> The Parties promise to embrace each other's quirks, eccentricities, and arcade obsessions.</p>
-                <p><strong>2. The Road Trip Protocol:</strong> The Girlfriend agrees to be the primary provider of BOTH snacks and music for random road trips.</p>
-                <p><strong>3. The "Me Time" Rights:</strong> Both parties reserve the right to "Nights Off" (Nerd Time / Girl Time). However, either party reserves the right to send cute pictures from their solo fun.</p>
-                <p><strong>4. The Media Compromise:</strong> The Boyfriend agrees to watch "girly shows" (e.g., <em>Bridgerton</em>) without complaint; The Girlfriend agrees to feign interest in nerdy documentaries.</p>
-                <p><strong>5. Limited Tech Support:</strong> Phillip Anthony Simpson agrees to provide IT/Tech Support exclusively to immediate family members.</p>
-                <p><strong>6. The Cooking Protocol:</strong> The Parties agree to maintain kindness and patience, even when hungry or attempting to cook a complex meal together.</p>
-            </div>
-            <div class="legal-footer">
-                <div class="signature-section">
-                    <p class="sign-label">Electronic Signature:</p>
-                    <div class="docusign-box">
-                        <span class="sign-arrow">⬇️ Sign Here</span>
-                        <div class="signed-name">Krystle Lee Pleitz</div>
-                        <div class="doc-date">Date: <span id="current-date"></span></div>
-                    </div>
-                </div>
-                <button id="acceptTermsBtn" class="docusign-btn disabled">I ACCEPT THESE TERMS</button>
-                <label style="display:block; margin-top:10px; font-size:0.8rem;">
-                    <input type="checkbox" id="terms-checkbox"> I have read the agreement
-                </label>
-            </div>
-        </div>
-    </div>
+                    if(dotsRemaining <= 0) { alive=false; showPopup(true); }
+                }
+            }
 
-    <div class="celebration hidden" id="celebration">
-        <div id="game-selection">
-            <h2 class="arcade-title">SELECT GAME</h2>
-            <button class="menu-btn" onclick="initGame('paperboy')">PAPERBOY: LOVE DELIVERY</button>
-            <button class="menu-btn" onclick="initGame('pacman')">PAC-KRYSTLE: EX-HUNTER</button>
-            <button class="menu-btn" onclick="initGame('invaders')">SPACE INVADERS: DEFENSE</button>
-        </div>
+            // GHOST SPEED (Slightly slower than player)
+            let ghostSpeed = speed + 2; 
+            if (powerTimer > 0) ghostSpeed += 5; // Much slower when vulnerable
+
+            if(frame % ghostSpeed === 0) {
+                ghosts.forEach(g => {
+                    let dirs=[0,1,2,3];
+                    g.dir = dirs[Math.floor(Math.random()*4)];
+                    let gx=g.x, gy=g.y;
+                    if(g.dir===0) gx++; if(g.dir===1) gy--; if(g.dir===2) gx--; if(g.dir===3) gy++;
+                    if(gx>=0 && gx<map[0].length && gy>=0 && gy<map.length && map[gy][gx]!==1) { g.x=gx; g.y=gy; }
+                });
+                // CHECK COLLISION AFTER GHOST MOVE
+                checkCollision();
+            }
+            
+            ctx.fillStyle='yellow'; ctx.beginPath(); ctx.arc(player.x*TILE+8, player.y*TILE+8, 7, 0.2*Math.PI, 1.8*Math.PI); ctx.lineTo(player.x*TILE+8, player.y*TILE+8); ctx.fill();
+            
+            ghosts.forEach(g => { 
+                ctx.fillStyle = g.vulnerable ? (powerTimer < 150 && frame % 10 < 5 ? 'white' : '#0096FF') : g.color;
+                ctx.beginPath(); ctx.arc(g.x*TILE+8,g.y*TILE+8,7,0,Math.PI*2); ctx.fill(); 
+            });
+            
+            gameLoopId = requestAnimationFrame(pacLoop);
+        }
+        pacLoop();
+
+    // --- INVADERS ---
+    } else if (type === 'invaders') {
+        canvas.width = 340; canvas.height = 450;
+        let player = { x: 150, w: 40, h: 20 }, bullets = [], invaders = [], invDir = 1;
+        let rows = Math.min(6, 2 + gameLevel);
+        for(let r=0; r<rows; r++) for(let c=0; c<6; c++) invaders.push({ x: 30+c*45, y: 30+r*35, t: r===0?'🐙':'👾' });
         
-        <div id="arcade-wrap" class="hidden">
-            <div class="stats-bar">
-                <span id="score-label">SCORE: <span id="score">0</span></span>
-                <span style="color: yellow;">LVL: <span id="level-indicator">1</span></span>
-                <button onclick="resetToMenu()" class="exit-btn">MENU</button>
-            </div>
-            
-            <canvas id="gameCanvas"></canvas>
-            
-            <div id="dpad" class="hidden">
-                <div class="dpad-row"><button class="d-btn" id="d-up">⬆️</button></div>
-                <div class="dpad-row">
-                    <button class="d-btn" id="d-left">⬅️</button>
-                    <button class="d-btn" id="d-right">➡️</button>
-                </div>
-                <div class="dpad-row"><button class="d-btn" id="d-down">⬇️</button></div>
-            </div>
-            
-            <div id="game-over" class="hidden">
-                <h2 id="go-title" class="blink" style="color:red; margin-bottom: 10px;">GAME OVER!</h2>
-                <p id="go-msg" style="color: #00ff00; margin-bottom: 20px; font-family: monospace;">But don't worry,<br>you still get Phillip! 😉</p>
-                <button id="btn-action" onclick="restartLevel()" class="menu-btn">TRY AGAIN</button>
-                <button onclick="resetToMenu()" class="menu-btn" style="background: #333; border-color: #666;">MAIN MENU</button>
-            </div>
-        </div>
-    </div>
+        function fire() { bullets.push({ x: player.x+15, y: 400 }); }
+        
+        handleTouchMove = (e) => {
+            e.preventDefault();
+            let rect = canvas.getBoundingClientRect();
+            let scaleX = canvas.width / rect.width;
+            let touchX = (e.touches[0].clientX - rect.left) * scaleX;
+            player.x = touchX - 20; 
+        };
+        handleTouchStart = (e) => { e.preventDefault(); fire(); };
+        
+        canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+        canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
 
-    <script src="script.js"></script>
-</body>
-</html>
+        function invLoop() {
+            if(!alive) return; frame++;
+            ctx.fillStyle='#000'; ctx.fillRect(0,0,canvas.width,canvas.height);
+            
+            if(keys['ArrowLeft']) player.x-=5; 
+            if(keys['ArrowRight']) player.x+=5; 
+            if(keys['Space'] && frame%10===0) fire();
+
+            player.x=Math.max(0,Math.min(canvas.width-40,player.x));
+
+            let speedFreq = Math.max(1, 5 - Math.floor(gameLevel/2));
+            if(frame % speedFreq === 0) { 
+                let hitEdge=false; 
+                invaders.forEach(inv=>{inv.x+=(2*invDir); if(inv.x>canvas.width-30 || inv.x<0) hitEdge=true;}); 
+                if(hitEdge) { invDir*=-1; invaders.forEach(inv=>inv.y+=10); } 
+            }
+            
+            ctx.fillStyle='red'; ctx.font='24px Arial'; 
+            invaders.forEach(inv=>{
+                ctx.fillText(inv.t,inv.x,inv.y); 
+                if(inv.y>380) { alive=false; showPopup(false); }
+            });
+            
+            bullets.forEach((b,i)=>{
+                b.y-=7; ctx.fillText('❤️',b.x,b.y); 
+                invaders.forEach((inv,ii)=>{
+                    if(b.x > inv.x - 10 && b.x < inv.x + 40 && b.y < inv.y + 10 && b.y > inv.y - 30) {
+                        invaders.splice(ii,1); bullets.splice(i,1); 
+                        currentScore+=100; document.getElementById('score').innerText=currentScore;
+                    }
+                });
+            });
+            
+            ctx.fillStyle='#00ff00'; ctx.fillRect(player.x,420,40,

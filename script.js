@@ -51,7 +51,7 @@ function showPopup(won) {
     if (won) {
         title.innerText = "LEVEL " + gameLevel + " CLEARED!";
         title.style.color = "#00ff00";
-        msg.innerText = "Difficulty Increased!";
+        msg.innerText = "Speed Increasing!";
         btn.innerText = "NEXT LEVEL";
     } else {
         title.innerText = "GAME OVER";
@@ -135,11 +135,32 @@ function initGame(type) {
         
         for(let r=0;r<map.length;r++) for(let c=0;c<map[r].length;c++) if(map[r][c]===0 || map[r][c]===8) dotsRemaining++;
 
+        // COLLISION HELPER
+        function checkCollision() {
+            ghosts.forEach(g => {
+                if(g.x === player.x && g.y === player.y) {
+                    if(g.vulnerable) {
+                        // EAT GHOST
+                        g.x = 9; g.y = 8; // Respawn in box
+                        g.vulnerable = false;
+                        currentScore += 200;
+                        document.getElementById('score').innerText = currentScore;
+                    } else {
+                        // DIE
+                        alive = false; 
+                        showPopup(false);
+                    }
+                }
+            });
+        }
+
         function pacLoop() {
             if(!alive) return;
             frame++;
             if (powerTimer > 0) powerTimer--;
             
+            if(powerTimer === 0) ghosts.forEach(g => g.vulnerable = false);
+
             if (keys['ArrowUp']) pacNextDir = 1;
             if (keys['ArrowDown']) pacNextDir = 3;
             if (keys['ArrowLeft']) pacNextDir = 2;
@@ -152,7 +173,9 @@ function initGame(type) {
                 else if(map[y][x]===8) { ctx.fillStyle=(frame%20<10)?'#ffb8ae':'#000'; ctx.beginPath(); ctx.arc(x*TILE+8,y*TILE+8,6,0,Math.PI*2); ctx.fill(); }
             }
 
-            let speed = Math.max(2, 8 - gameLevel); 
+            // PLAYER SPEED (Higher number = Slower)
+            let speed = Math.max(10, 18 - (gameLevel * 2)); 
+            
             if(frame % speed === 0) {
                 let dx=0, dy=0; 
                 if(pacNextDir===0) dx=1; if(pacNextDir===1) dy=-1; if(pacNextDir===2) dx=-1; if(pacNextDir===3) dy=1;
@@ -170,6 +193,9 @@ function initGame(type) {
                 else if(destY<0) player.y=map.length-1; else if(destY>=map.length) player.y=0; 
                 else if(map[destY][destX]!==1) { player.x=destX; player.y=destY; }
                 
+                // CHECK COLLISION AFTER MOVE
+                checkCollision();
+
                 let tile=map[player.y][player.x];
                 if(tile===0 || tile===8) { 
                     map[player.y][player.x]=9; 
@@ -177,9 +203,8 @@ function initGame(type) {
                     document.getElementById('score').innerText = currentScore;
                     dotsRemaining--;
                     
-                    // --- THE FIX: MAKE GHOSTS VULNERABLE ---
-                    if (tile === 8) {
-                        powerTimer = 400;
+                    if(tile===8) {
+                        powerTimer = 600; 
                         ghosts.forEach(g => g.vulnerable = true);
                     }
 
@@ -187,36 +212,26 @@ function initGame(type) {
                 }
             }
 
-            let ghostSpeed = Math.max(4, 10 - gameLevel);
+            // GHOST SPEED (Slightly slower than player)
+            let ghostSpeed = speed + 2; 
+            if (powerTimer > 0) ghostSpeed += 5; // Much slower when vulnerable
+
             if(frame % ghostSpeed === 0) {
                 ghosts.forEach(g => {
-                    if(g.vulnerable && frame % (ghostSpeed*2) !== 0) return; // Slow down if blue
-
                     let dirs=[0,1,2,3];
                     g.dir = dirs[Math.floor(Math.random()*4)];
                     let gx=g.x, gy=g.y;
                     if(g.dir===0) gx++; if(g.dir===1) gy--; if(g.dir===2) gx--; if(g.dir===3) gy++;
                     if(gx>=0 && gx<map[0].length && gy>=0 && gy<map.length && map[gy][gx]!==1) { g.x=gx; g.y=gy; }
-                    
-                    if(g.x===player.x && g.y===player.y) { 
-                        if (g.vulnerable) {
-                            // Eat Ghost
-                            g.x = 10; g.y = 8; // Respawn
-                            g.vulnerable = false;
-                            currentScore += 200;
-                            document.getElementById('score').innerText = currentScore;
-                        } else {
-                            alive=false; showPopup(false); 
-                        }
-                    }
                 });
+                // CHECK COLLISION AFTER GHOST MOVE
+                checkCollision();
             }
             
-            if (powerTimer === 0) ghosts.forEach(g => g.vulnerable = false);
-
             ctx.fillStyle='yellow'; ctx.beginPath(); ctx.arc(player.x*TILE+8, player.y*TILE+8, 7, 0.2*Math.PI, 1.8*Math.PI); ctx.lineTo(player.x*TILE+8, player.y*TILE+8); ctx.fill();
+            
             ghosts.forEach(g => { 
-                ctx.fillStyle = g.vulnerable ? (powerTimer < 100 && frame%20<10 ? 'white' : 'blue') : g.color; 
+                ctx.fillStyle = g.vulnerable ? (powerTimer < 150 && frame % 10 < 5 ? 'white' : '#0096FF') : g.color;
                 ctx.beginPath(); ctx.arc(g.x*TILE+8,g.y*TILE+8,7,0,Math.PI*2); ctx.fill(); 
             });
             
@@ -379,7 +394,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 void paper.offsetWidth; 
                 paper.classList.add('visible');
                 
-                // REVEAL LOGIC + SAFETY TAP
+                // REVEAL LOGIC
                 setTimeout(() => {
                     document.getElementById('delayed-content').classList.add('fade-in-slow');
                 }, 2500); 

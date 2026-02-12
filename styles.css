@@ -1,90 +1,448 @@
-* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-body { font-family: 'Indie Flower', cursive; background: #222; overflow: hidden; min-height: 100vh; display: flex; justify-content: center; align-items: center; }
-.container { width: 100%; max-width: 450px; padding: 10px; perspective: 1000px; position: relative; z-index: 1; }
+// --- GLOBAL VARS ---
+let gameLoopId;
+let activeGame = null;
+let keys = {};
+let pacNextDir = 0;
+let gameLevel = 1;
+let currentScore = 0;
 
-/* ENVELOPE */
-.envelope-wrapper { position: relative; width: 300px; height: 180px; margin: 0 auto; cursor: pointer; transition: all 1s ease; z-index: 10; }
-.envelope { position: relative; width: 100%; height: 100%; background: #ff7675; border-radius: 0 0 5px 5px; }
-.envelope-pocket { position: absolute; bottom: 0; left: 0; width: 0; height: 0; border-style: solid; border-width: 0 150px 100px 150px; border-color: transparent transparent #e17055 transparent; z-index: 3; }
-.envelope-flap { position: absolute; top: 0; left: 0; width: 0; height: 0; border-style: solid; border-width: 100px 150px 0 150px; border-color: #c0392b transparent transparent transparent; z-index: 4; transform-origin: top; transition: transform 0.6s ease; }
-.card { position: absolute; bottom: 20px; left: 0; width: 100%; text-align: center; color: white; z-index: 100; font-family: 'Permanent Marker', cursive; font-size: 2.2rem; text-shadow: 0 2px 5px rgba(0,0,0,0.2); pointer-events: none; }
-.envelope-wrapper.open .envelope-flap { transform: rotateX(180deg); z-index: 1; }
-.envelope-wrapper.fly-away { transform: translateY(100vh) rotate(20deg); opacity: 0; }
+let handleTouchStart = null;
+let handleTouchMove = null;
+let handleTouchEnd = null;
 
-/* PAPER */
-.paper { background: white; width: 100%; padding: 40px 20px 30px 40px; background-image: repeating-linear-gradient(white 0px, white 27px, #a2d2ff 28px); line-height: 28px; transform: rotate(1deg) scale(0.1); opacity: 0; position: relative; min-height: 400px; transition: all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 5px 20px rgba(0,0,0,0.2); z-index: 5; }
-.paper.visible { transform: rotate(1deg) scale(1); opacity: 1; }
-.paper::before { content: ''; position: absolute; top: 0; left: 35px; height: 100%; width: 2px; background: #ff7675; }
-.intro { font-size: 1.4rem; font-weight: bold; color: #333; }
-.message { font-size: 1.2rem; margin-top: 20px; color: #555; }
+// --- GLOBAL FUNCTIONS ---
 
-/* FADE LOGIC - SAFE */
-.invisible { 
-    opacity: 0; 
-    transition: opacity 2s ease-in; 
-    pointer-events: none; /* Can't click while hidden */
-}
-.fade-in-slow { 
-    opacity: 1 !important; 
-    pointer-events: auto; /* Clickable when visible */
-}
-
-.main-question { font-size: 1.8rem; color: #d63031; text-align: center; margin-top: 30px; font-weight: bold; line-height: 1.2; }
-.action-area { margin-top: 20px; height: 140px; position: relative; }
-.yes-btn { position: absolute; left: 50%; transform: translateX(-50%); background: #0984e3; color: white; border: none; padding: 12px 40px; border-radius: 50px; font-size: 1.6rem; cursor: pointer; z-index: 5; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
-.no-btn { background: #b2bec3; color: white; border: none; padding: 8px 15px; border-radius: 5px; position: absolute; top: 85px; left: 50%; transform: translateX(-50%); transition: all 0.1s ease; z-index: 6; cursor: pointer; }
-
-/* TERMS MODAL */
-#terms-modal { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.9); z-index: 9999; display: flex; justify-content: center; align-items: flex-start; overflow-y: scroll; -webkit-overflow-scrolling: touch; padding: 20px 10px; }
-#terms-modal.hidden { display: none !important; }
-.legal-paper { background: #fff; padding: 25px; width: 95%; max-width: 420px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); font-family: 'Roboto', sans-serif; position: relative; border-radius: 4px; margin-bottom: 80px; }
-.legal-header { border-bottom: 2px solid #333; margin-bottom: 20px; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
-.legal-header h2 { font-size: 1.2rem; color: #333; font-weight: 700; margin: 0; }
-.doc-id { font-size: 0.7rem; color: #777; font-family: monospace; }
-.terms-body p { font-size: 0.85rem; margin-bottom: 12px; color: #444; line-height: 1.4; text-align: left; }
-.legal-footer { margin-top: 25px; background: #f9f9f9; padding: 15px; border: 1px solid #ddd; }
-.signature-section { margin-bottom: 15px; text-align: left; }
-.sign-label { font-size: 0.8rem; color: #666; margin-bottom: 5px; }
-.docusign-box { border-bottom: 2px solid #000; position: relative; padding: 10px 0 5px; font-family: 'Dancing Script', cursive; font-size: 1.8rem; color: #000; }
-.sign-arrow { position: absolute; top: -20px; left: 0; font-size: 0.8rem; color: #f1c40f; background: #fff; padding: 2px 5px; font-family: sans-serif; font-weight: bold; border: 1px solid #f1c40f; border-radius: 3px; }
-.doc-date { font-size: 0.7rem; color: #888; font-family: monospace; margin-top: 5px; text-align: right; }
-.docusign-btn { background: #ffc107; color: #000; border: none; padding: 12px; width: 100%; font-weight: bold; font-size: 1.1rem; cursor: pointer; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: all 0.2s; }
-.docusign-btn:hover { background: #ffca2c; }
-.disabled { opacity: 0.5; pointer-events: none; background: #ccc; }
-
-/* ARCADE */
-.celebration { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #000; z-index: 10000; overflow-y: auto; display: block; text-align: center; }
-.celebration.hidden { display: none !important; }
-
-#game-selection { text-align: center; width: 100%; max-width: 400px; padding: 50px 20px; margin: 0 auto; }
-.arcade-title { font-family: 'Permanent Marker', cursive; color: #ff00ff; font-size: 2.5rem; text-shadow: 0 0 10px #ff00ff; margin-bottom: 30px; }
-.menu-btn { background: #111; color: #00ff00; border: 2px solid #00ff00; padding: 15px; width: 100%; max-width: 280px; margin: 15px auto; display: block; font-family: 'VT323', monospace; font-size: 1.4rem; cursor: pointer; text-transform: uppercase; }
-.menu-btn:hover { background: #00ff00; color: #000; }
-
-#arcade-wrap { width: 100%; display: block; text-align: center; padding-top: 20px; }
-#arcade-wrap.hidden { display: none !important; }
-
-#gameCanvas { 
-    background: #000; 
-    border: 4px solid #222; 
-    margin: 10px auto; 
-    display: block; 
-    touch-action: none; 
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    user-select: none;
-    image-rendering: pixelated; 
-    max-width: 95%; 
-    height: auto; 
+function resetToMenu() {
+    if(gameLoopId) cancelAnimationFrame(gameLoopId);
+    activeGame = null;
+    document.getElementById('arcade-wrap').style.display = 'none';
+    document.getElementById('game-selection').style.display = 'block';
+    document.getElementById('game-over').style.display = 'none';
+    document.getElementById('dpad').classList.add('hidden');
+    
+    const canvas = document.getElementById('gameCanvas');
+    if (handleTouchStart) canvas.removeEventListener('touchstart', handleTouchStart);
+    if (handleTouchMove) canvas.removeEventListener('touchmove', handleTouchMove);
+    if (handleTouchEnd) canvas.removeEventListener('touchend', handleTouchEnd);
+    
+    gameLevel = 1;
+    currentScore = 0;
 }
 
-.stats-bar { display: flex; justify-content: space-between; align-items: center; width: 95%; max-width: 330px; margin: 0 auto 10px; font-family: 'VT323', monospace; color: #fff; font-size: 1.2rem; }
-.exit-btn { background: #333; border: 1px solid #666; color: #ccc; padding: 4px 8px; cursor: pointer; font-family: inherit; font-size: 1rem; }
-#dpad { margin-top: 10px; display: flex; flex-direction: column; align-items: center; gap: 5px; }
-.dpad-row { display: flex; gap: 15px; }
-.d-btn { width: 50px; height: 50px; background: rgba(255,255,255,0.1); border: 1px solid #555; border-radius: 50%; color: white; font-size: 1.5rem; cursor: pointer; display: flex; justify-content: center; align-items: center;}
-.d-btn:active { background: rgba(0,255,0,0.3); }
-#game-over { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); padding: 30px; border: 2px solid red; z-index: 2000; width: 320px; text-align: center; }
-.blink { animation: blink 1s infinite; }
-@keyframes blink { 50% { opacity: 0; } }
-.hidden { display: none !important; }
+function restartLevel() {
+    if (document.getElementById('go-title').innerText.includes("CLEARED")) {
+        gameLevel++;
+    } else {
+        gameLevel = 1;
+        currentScore = 0;
+    }
+    initGame(activeGame);
+}
+
+function showPopup(won) {
+    const el = document.getElementById('game-over');
+    const title = document.getElementById('go-title');
+    const msg = document.getElementById('go-msg');
+    const btn = document.getElementById('btn-action');
+
+    el.style.display = 'block';
+    el.classList.remove('hidden');
+
+    if (won) {
+        title.innerText = "LEVEL " + gameLevel + " CLEARED!";
+        title.style.color = "#00ff00";
+        msg.innerText = "Speed Increasing!";
+        btn.innerText = "NEXT LEVEL";
+    } else {
+        title.innerText = "GAME OVER";
+        title.style.color = "red";
+        msg.innerText = "Don't worry, you still get Phillip! 😉";
+        btn.innerText = "TRY AGAIN";
+    }
+}
+
+function initGame(type) {
+    document.getElementById('game-selection').style.display = 'none';
+    document.getElementById('arcade-wrap').classList.remove('hidden');
+    document.getElementById('arcade-wrap').style.display = 'block'; 
+    document.getElementById('game-over').style.display = 'none';
+    document.getElementById('dpad').classList.add('hidden');
+
+    document.getElementById('score').innerText = currentScore;
+    document.getElementById('level-indicator').innerText = gameLevel;
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    if (handleTouchStart) canvas.removeEventListener('touchstart', handleTouchStart);
+    if (handleTouchMove) canvas.removeEventListener('touchmove', handleTouchMove);
+    if (handleTouchEnd) canvas.removeEventListener('touchend', handleTouchEnd);
+    
+    if(gameLoopId) cancelAnimationFrame(gameLoopId);
+    activeGame = type;
+    
+    let frame = 0;
+    let alive = true;
+
+    window.addEventListener('keydown', (e) => {
+        if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
+        keys[e.code] = true;
+    });
+    window.addEventListener('keyup', (e) => keys[e.code] = false);
+
+    // --- PAC-MAN ---
+    if (type === 'pacman') {
+        canvas.width = 336; canvas.height = 380;
+        document.getElementById('dpad').classList.remove('hidden');
+        
+        let tsX = 0, tsY = 0;
+        handleTouchStart = (e) => { 
+            e.preventDefault(); 
+            tsX = e.touches[0].clientX; 
+            tsY = e.touches[0].clientY; 
+        };
+        handleTouchEnd = (e) => {
+            e.preventDefault(); 
+            let teX = e.changedTouches[0].clientX;
+            let teY = e.changedTouches[0].clientY;
+            let dx = teX - tsX;
+            let dy = teY - tsY;
+            if(Math.abs(dx) > Math.abs(dy)) {
+                if(dx > 0) pacNextDir = 0; else pacNextDir = 2;
+            } else {
+                if(dy > 0) pacNextDir = 3; else pacNextDir = 1;
+            }
+        };
+        
+        canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+        canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+
+        const TILE = 16;
+        let map = [
+            [1,1,1,1,1,1,1,1,1,9,9,9,1,1,1,1,1,1,1,1,1], [1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1],
+            [1,8,1,1,1,1,0,1,1,0,1,0,1,1,0,1,1,1,1,8,1], [1,0,1,1,1,1,0,1,1,0,1,0,1,1,0,1,1,1,1,0,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1], [1,0,1,1,1,1,0,1,0,1,1,1,0,1,0,1,1,1,1,0,1],
+            [1,0,0,0,0,0,0,1,0,0,1,0,0,1,0,0,0,0,0,0,1], [1,1,1,1,1,1,0,1,1,9,9,9,1,1,0,1,1,1,1,1,1],
+            [9,9,9,9,9,9,0,1,9,9,9,9,9,1,0,9,9,9,9,9,9], [1,1,1,1,1,1,0,1,9,9,9,9,9,1,0,1,1,1,1,1,1],
+            [1,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,1], [1,0,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,0,1],
+            [1,8,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,8,1], [1,1,0,1,0,1,0,1,1,1,1,1,1,1,0,1,0,1,0,1,1],
+            [1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1], [1,1,1,1,1,1,1,1,1,9,9,9,1,1,1,1,1,1,1,1,1]
+        ];
+        let player = { x: 10, y: 14, dir: 0 };
+        let ghosts = [ { x: 9, y: 8, color: 'red', vulnerable: false }, { x: 10, y: 8, color: 'pink', vulnerable: false }, { x: 11, y: 8, color: 'cyan', vulnerable: false } ];
+        let dotsRemaining = 0;
+        let powerTimer = 0;
+        
+        for(let r=0;r<map.length;r++) for(let c=0;c<map[r].length;c++) if(map[r][c]===0 || map[r][c]===8) dotsRemaining++;
+
+        // COLLISION HELPER
+        function checkCollision() {
+            ghosts.forEach(g => {
+                if(g.x === player.x && g.y === player.y) {
+                    if(g.vulnerable) {
+                        // EAT GHOST
+                        g.x = 9; g.y = 8; // Respawn in box
+                        g.vulnerable = false;
+                        currentScore += 200;
+                        document.getElementById('score').innerText = currentScore;
+                    } else {
+                        // DIE
+                        alive = false; 
+                        showPopup(false);
+                    }
+                }
+            });
+        }
+
+        function pacLoop() {
+            if(!alive) return;
+            frame++;
+            if (powerTimer > 0) powerTimer--;
+            
+            if(powerTimer === 0) ghosts.forEach(g => g.vulnerable = false);
+
+            if (keys['ArrowUp']) pacNextDir = 1;
+            if (keys['ArrowDown']) pacNextDir = 3;
+            if (keys['ArrowLeft']) pacNextDir = 2;
+            if (keys['ArrowRight']) pacNextDir = 0;
+
+            ctx.fillStyle = 'black'; ctx.fillRect(0,0,canvas.width,canvas.height);
+            for(let y=0; y<map.length; y++) for(let x=0; x<map[y].length; x++) {
+                if(map[y][x]===1) { ctx.fillStyle='#1919A6'; ctx.fillRect(x*TILE, y*TILE, TILE, TILE); }
+                else if(map[y][x]===0) { ctx.fillStyle='#ffb8ae'; ctx.beginPath(); ctx.arc(x*TILE+8,y*TILE+8, 3, 0, Math.PI*2); ctx.fill(); }
+                else if(map[y][x]===8) { ctx.fillStyle=(frame%20<10)?'#ffb8ae':'#000'; ctx.beginPath(); ctx.arc(x*TILE+8,y*TILE+8,6,0,Math.PI*2); ctx.fill(); }
+            }
+
+            // PLAYER SPEED (Higher number = Slower)
+            let speed = Math.max(10, 18 - (gameLevel * 2)); 
+            
+            if(frame % speed === 0) {
+                let dx=0, dy=0; 
+                if(pacNextDir===0) dx=1; if(pacNextDir===1) dy=-1; if(pacNextDir===2) dx=-1; if(pacNextDir===3) dy=1;
+                let nextX=player.x+dx, nextY=player.y+dy;
+                
+                if(nextX<0) nextX=map[0].length-1; if(nextX>=map[0].length) nextX=0; 
+                if(nextY<0) nextY=map.length-1; if(nextY>=map.length) nextY=0;
+                
+                if(map[nextY][nextX]!==1) player.dir=pacNextDir;
+                dx=0; dy=0; 
+                if(player.dir===0) dx=1; if(player.dir===1) dy=-1; if(player.dir===2) dx=-1; if(player.dir===3) dy=1;
+                let destX=player.x+dx, destY=player.y+dy;
+                
+                if(destX<0) player.x=map[0].length-1; else if(destX>=map[0].length) player.x=0; 
+                else if(destY<0) player.y=map.length-1; else if(destY>=map.length) player.y=0; 
+                else if(map[destY][destX]!==1) { player.x=destX; player.y=destY; }
+                
+                // CHECK COLLISION AFTER MOVE
+                checkCollision();
+
+                let tile=map[player.y][player.x];
+                if(tile===0 || tile===8) { 
+                    map[player.y][player.x]=9; 
+                    currentScore += (tile===8 ? 50 : 10);
+                    document.getElementById('score').innerText = currentScore;
+                    dotsRemaining--;
+                    
+                    if(tile===8) {
+                        powerTimer = 600; 
+                        ghosts.forEach(g => g.vulnerable = true);
+                    }
+
+                    if(dotsRemaining <= 0) { alive=false; showPopup(true); }
+                }
+            }
+
+            // GHOST SPEED (Slightly slower than player)
+            let ghostSpeed = speed + 2; 
+            if (powerTimer > 0) ghostSpeed += 5; // Much slower when vulnerable
+
+            if(frame % ghostSpeed === 0) {
+                ghosts.forEach(g => {
+                    let dirs=[0,1,2,3];
+                    g.dir = dirs[Math.floor(Math.random()*4)];
+                    let gx=g.x, gy=g.y;
+                    if(g.dir===0) gx++; if(g.dir===1) gy--; if(g.dir===2) gx--; if(g.dir===3) gy++;
+                    if(gx>=0 && gx<map[0].length && gy>=0 && gy<map.length && map[gy][gx]!==1) { g.x=gx; g.y=gy; }
+                });
+                // CHECK COLLISION AFTER GHOST MOVE
+                checkCollision();
+            }
+            
+            ctx.fillStyle='yellow'; ctx.beginPath(); ctx.arc(player.x*TILE+8, player.y*TILE+8, 7, 0.2*Math.PI, 1.8*Math.PI); ctx.lineTo(player.x*TILE+8, player.y*TILE+8); ctx.fill();
+            
+            ghosts.forEach(g => { 
+                ctx.fillStyle = g.vulnerable ? (powerTimer < 150 && frame % 10 < 5 ? 'white' : '#0096FF') : g.color;
+                ctx.beginPath(); ctx.arc(g.x*TILE+8,g.y*TILE+8,7,0,Math.PI*2); ctx.fill(); 
+            });
+            
+            gameLoopId = requestAnimationFrame(pacLoop);
+        }
+        pacLoop();
+
+    // --- INVADERS ---
+    } else if (type === 'invaders') {
+        canvas.width = 340; canvas.height = 450;
+        let player = { x: 150, w: 40, h: 20 }, bullets = [], invaders = [], invDir = 1;
+        let rows = Math.min(6, 2 + gameLevel);
+        for(let r=0; r<rows; r++) for(let c=0; c<6; c++) invaders.push({ x: 30+c*45, y: 30+r*35, t: r===0?'🐙':'👾' });
+        
+        function fire() { bullets.push({ x: player.x+15, y: 400 }); }
+        
+        handleTouchMove = (e) => {
+            e.preventDefault();
+            let rect = canvas.getBoundingClientRect();
+            let scaleX = canvas.width / rect.width;
+            let touchX = (e.touches[0].clientX - rect.left) * scaleX;
+            player.x = touchX - 20; 
+        };
+        handleTouchStart = (e) => { e.preventDefault(); fire(); };
+        
+        canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+        canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+
+        function invLoop() {
+            if(!alive) return; frame++;
+            ctx.fillStyle='#000'; ctx.fillRect(0,0,canvas.width,canvas.height);
+            
+            if(keys['ArrowLeft']) player.x-=5; 
+            if(keys['ArrowRight']) player.x+=5; 
+            if(keys['Space'] && frame%10===0) fire();
+
+            player.x=Math.max(0,Math.min(canvas.width-40,player.x));
+
+            let speedFreq = Math.max(1, 5 - Math.floor(gameLevel/2));
+            if(frame % speedFreq === 0) { 
+                let hitEdge=false; 
+                invaders.forEach(inv=>{inv.x+=(2*invDir); if(inv.x>canvas.width-30 || inv.x<0) hitEdge=true;}); 
+                if(hitEdge) { invDir*=-1; invaders.forEach(inv=>inv.y+=10); } 
+            }
+            
+            ctx.fillStyle='red'; ctx.font='24px Arial'; 
+            invaders.forEach(inv=>{
+                ctx.fillText(inv.t,inv.x,inv.y); 
+                if(inv.y>380) { alive=false; showPopup(false); }
+            });
+            
+            bullets.forEach((b,i)=>{
+                b.y-=7; ctx.fillText('❤️',b.x,b.y); 
+                invaders.forEach((inv,ii)=>{
+                    if(b.x > inv.x - 10 && b.x < inv.x + 40 && b.y < inv.y + 10 && b.y > inv.y - 30) {
+                        invaders.splice(ii,1); bullets.splice(i,1); 
+                        currentScore+=100; document.getElementById('score').innerText=currentScore;
+                    }
+                });
+            });
+            
+            ctx.fillStyle='#00ff00'; ctx.fillRect(player.x,420,40,20); ctx.fillRect(player.x+15,410,10,10);
+            
+            if(invaders.length===0) { alive=false; showPopup(true); }
+            gameLoopId=requestAnimationFrame(invLoop);
+        }
+        invLoop();
+
+    // --- PAPERBOY ---
+    } else if (type === 'paperboy') {
+        canvas.width = 340; canvas.height = 450;
+        let player = { x: 170, y: 350 }, world = [], hearts = [];
+        let distance = 0;
+        let goal = 1000 + (gameLevel * 500);
+
+        handleTouchMove = (e) => {
+            e.preventDefault();
+            let rect = canvas.getBoundingClientRect();
+            let scaleX = canvas.width / rect.width;
+            let touchX = (e.touches[0].clientX - rect.left) * scaleX;
+            player.x = touchX;
+        };
+        handleTouchStart = (e) => { e.preventDefault(); hearts.push({x:player.x+20,y:player.y,vx:-5,vy:-5}); };
+
+        canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+        canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+
+        function pbLoop() {
+            if(!alive) return; frame++;
+            distance += 5;
+            
+            ctx.fillStyle='#2d5a27'; ctx.fillRect(0,0,340,450); 
+            ctx.fillStyle='#555'; ctx.beginPath(); ctx.moveTo(100,0); ctx.lineTo(340,0); ctx.lineTo(340,450); ctx.lineTo(100,450); ctx.fill(); 
+            ctx.fillStyle='#777'; ctx.fillRect(80,0,20,450);
+            
+            if(keys['ArrowLeft']) player.x-=5; 
+            if(keys['ArrowRight']) player.x+=5; 
+            if(keys['Space'] && frame%10===0) hearts.push({x:player.x+20,y:player.y,vx:-5,vy:-5});
+
+            player.x=Math.max(100,Math.min(300,player.x));
+            
+            let spawnRate = Math.max(20, 50 - (gameLevel*5));
+            if(frame % spawnRate === 0) { 
+                let isHouse=Math.random()>0.4; 
+                let spawnX = isHouse ? (Math.random() * 60) : (120 + Math.random() * 200); 
+                world.push({x:spawnX, y:-50, t:isHouse?'🏠':'🚗', hit:false, isCar:!isHouse, speed: 4+(gameLevel)}); 
+            }
+
+            world.forEach((w,i)=>{
+                w.y += w.speed; 
+                if(w.isCar && w.y<0) w.x = Math.max(120, Math.min(300, w.x)); 
+                
+                ctx.font='40px Arial'; ctx.fillText(w.hit?'💖':w.t,w.x,w.y); 
+                if(w.isCar && Math.abs(player.x - w.x) < 30 && Math.abs(player.y - w.y) < 30) { alive=false; showPopup(false); } 
+                if(w.y>500) world.splice(i,1);
+            });
+
+            hearts.forEach((h,i)=>{
+                h.x+=h.vx; h.y+=h.vy; ctx.font='20px Arial'; ctx.fillText('❤️',h.x,h.y); 
+                world.forEach(w=>{if(w.t==='🏠'&&!w.hit&&Math.abs(h.x-w.x)<40 && Math.abs(h.y-w.y)<40){w.hit=true; currentScore+=50; document.getElementById('score').innerText=currentScore;}});
+            });
+
+            ctx.font='40px Arial'; ctx.fillText('🚲',player.x,player.y);
+            
+            if (distance > goal) { alive = false; showPopup(true); }
+            
+            gameLoopId=requestAnimationFrame(pbLoop);
+        }
+        pbLoop();
+    }
+}
+
+// DOM LOAD
+document.addEventListener('DOMContentLoaded', () => {
+    const envWrap = document.getElementById('envelope-wrap');
+    const flap = document.getElementById('flap');
+    const paper = document.getElementById('main-paper');
+    const area = document.getElementById('actionArea');
+    const no = document.getElementById('noBtn');
+    const termsModal = document.getElementById('terms-modal');
+    const termsCheck = document.getElementById('terms-checkbox');
+    const acceptTermsBtn = document.getElementById('acceptTermsBtn');
+    const dateSpan = document.getElementById('current-date');
+    const celebration = document.getElementById('celebration');
+    
+    termsModal.classList.add('hidden');
+    celebration.classList.add('hidden');
+    celebration.style.display = 'none'; 
+    if(dateSpan) dateSpan.innerText = new Date().toLocaleDateString();
+
+    envWrap.addEventListener('click', () => {
+        if(envWrap.classList.contains('open')) return;
+        envWrap.classList.add('open');
+        setTimeout(() => {
+            envWrap.classList.add('fly-away');
+            setTimeout(() => {
+                envWrap.classList.add('hidden');
+                flap.style.display = 'none';
+                paper.classList.remove('hidden');
+                void paper.offsetWidth; 
+                paper.classList.add('visible');
+                
+                // REVEAL LOGIC
+                setTimeout(() => {
+                    document.getElementById('delayed-content').classList.add('fade-in-slow');
+                }, 2500); 
+                
+                paper.addEventListener('click', () => {
+                    document.getElementById('delayed-content').classList.add('fade-in-slow');
+                });
+
+            }, 500);
+        }, 600);
+    });
+
+    const moveNo = () => {
+        no.style.left = Math.random() * (area.clientWidth - no.offsetWidth) + 'px';
+        no.style.top = Math.random() * (area.clientHeight - no.offsetHeight) + 'px';
+        no.style.transform = 'none';
+    };
+    no.addEventListener('mouseover', moveNo);
+    no.addEventListener('touchstart', (e) => { e.preventDefault(); moveNo(); });
+
+    document.getElementById('yesBtn').addEventListener('click', () => {
+        paper.style.transition = "transform 0.8s ease-in";
+        paper.style.transform = "translateY(-150%) rotate(10deg)";
+        setTimeout(() => {
+            paper.classList.add('hidden');
+            termsModal.classList.remove('hidden'); 
+        }, 500);
+    });
+
+    if(termsCheck) {
+        termsCheck.addEventListener('change', (e) => {
+            if(e.target.checked) acceptTermsBtn.classList.remove('disabled');
+            else acceptTermsBtn.classList.add('disabled');
+        });
+    }
+    if(acceptTermsBtn) {
+        acceptTermsBtn.addEventListener('click', () => {
+            termsModal.classList.add('hidden');
+            celebration.classList.remove('hidden');
+            celebration.style.display = 'block'; 
+            resetToMenu();
+        });
+    }
+
+    ['up','down','left','right'].forEach(dir => {
+        const btn = document.getElementById('d-'+dir);
+        if(!btn) return;
+        
+        const press = (e) => {
+            e.preventDefault();
+            keys['Arrow'+dir.charAt(0
