@@ -2,8 +2,6 @@
 body { font-family: 'Indie Flower', cursive; background: #222; overflow: hidden; min-height: 100vh; display: flex; justify-content: center; align-items: center; }
 .container { width: 100%; max-width: 450px; padding: 10px; perspective: 1000px; position: relative; z-index: 1; }
 
-#version-tag { position: fixed; bottom: 5px; right: 5px; background: red; color: white; padding: 5px; font-size: 12px; z-index: 999999; font-family: sans-serif; pointer-events: none; }
-
 /* ENVELOPE */
 .envelope-wrapper { position: relative; width: 300px; height: 180px; margin: 0 auto; cursor: pointer; transition: all 1s ease; z-index: 10; }
 .envelope { position: relative; width: 100%; height: 100%; background: #ff7675; border-radius: 0 0 5px 5px; }
@@ -20,9 +18,16 @@ body { font-family: 'Indie Flower', cursive; background: #222; overflow: hidden;
 .intro { font-size: 1.4rem; font-weight: bold; color: #333; }
 .message { font-size: 1.2rem; margin-top: 20px; color: #555; }
 
-/* THE FADE IN LOGIC */
-.invisible { opacity: 0; transition: opacity 2s ease-in; } /* Takes 2 seconds to fade in */
-.fade-in-slow { opacity: 1 !important; }
+/* FADE LOGIC - SAFE */
+.invisible { 
+    opacity: 0; 
+    transition: opacity 2s ease-in; 
+    pointer-events: none; /* Can't click while hidden */
+}
+.fade-in-slow { 
+    opacity: 1 !important; 
+    pointer-events: auto; /* Clickable when visible */
+}
 
 .main-question { font-size: 1.8rem; color: #d63031; text-align: center; margin-top: 30px; font-weight: bold; line-height: 1.2; }
 .action-area { margin-top: 20px; height: 140px; position: relative; }
